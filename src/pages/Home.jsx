@@ -1,27 +1,25 @@
 //Home.jsx
-import React, { useState } from "react";
-import {
-  Box,
-  Typography,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-} from "@mui/material";
+import React, { useState, useEffect } from "react";
+import {  Box,  Typography,  Select,  MenuItem,  FormControl,  InputLabel } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import { obtenerCampus } from "../api/campusApi"; // Asegúrate de que la ruta sea correcta
+import axios from "axios";
 
-function Home() {
+function Home() {  
   const [campus, setCampus] = useState("");
-
+  const [campusOptions, setCampusOptions] = useState([]);
   const handleCampusChange = (event) => {
     setCampus(event.target.value);
   };
 
-  const campusOptions = [
-    { id: 1, nombre: "Campus Tegucigalpa" },
-    { id: 2, nombre: "Campus San Pedro Sula" },
-    { id: 3, nombre: "Campus La Ceiba" },
-  ];
+  useEffect(() => {
+  const cargarCampus = async () => {
+    const data = await obtenerCampus();
+    setCampusOptions(data);
+  };
+
+  cargarCampus();
+}, []);
 
   const registros = [
     {
@@ -69,7 +67,7 @@ function Home() {
       gap={3}
       sx={{ boxSizing: "border-box" }}
     >
-      <Typography variant="h4" align="center">
+      <Typography variant="h1" align="center">
         Servicios Académicos
       </Typography>
 
@@ -77,17 +75,18 @@ function Home() {
         <FormControl sx={{ minWidth: 300 }}>
           <InputLabel id="campus-label">Seleccionar Campus</InputLabel>
           <Select
-            labelId="campus-label"
-            value={campus}
-            onChange={handleCampusChange}
-            label="Seleccionar Campus"
-          >
-            {campusOptions.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.nombre}
-              </MenuItem>
-            ))}
-          </Select>
+      labelId="campus-label"
+      value={campus}
+      onChange={handleCampusChange}
+      label="Seleccionar Campus"
+    >
+      {Array.isArray(campusOptions) &&
+  campusOptions.map((c) => (
+    <MenuItem key={c.CamCod} value={c.CamCod}>
+  {c.CamNomEsp}
+</MenuItem>
+  ))}
+    </Select>
         </FormControl>
       </Box>
 
