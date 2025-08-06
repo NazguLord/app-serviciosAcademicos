@@ -1,7 +1,17 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: '/sv/' ,
   plugins: [react()],
-})
+  server: {
+    host: true,
+    port: 5173,
+    origin: 'http://unicahdev.registro.cp.unicah.edu',
+    allowedHosts: ['unicahdev.registro.cp.unicah.edu'],
+    hmr: {
+      host: 'unicahdev.registro.cp.unicah.edu',
+      protocol: 'ws'
+    }
+  }
+}));
