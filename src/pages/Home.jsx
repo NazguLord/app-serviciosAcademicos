@@ -1,117 +1,205 @@
-//Home.jsx
+// src/pages/Home.jsx
 import React, { useState, useEffect } from "react";
-import {  Box,  Typography,  Select,  MenuItem,  FormControl,  InputLabel } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  TextField,
+  Tabs,
+  Tab,
+  Paper,
+  CircularProgress,
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { obtenerCampus } from "../api/campusApi"; // Asegúrate de que la ruta sea correcta
-import axios from "axios";
+import { obtenerCampus } from "../api/campusApi";
+import { obtenerSolicitudes } from "../api/solicitudesApi";
 
-function Home() {  
-  const [campus, setCampus] = useState("");
-  const [campusOptions, setCampusOptions] = useState([]);
-  const handleCampusChange = (event) => {
-    setCampus(event.target.value);
-  };
+const estados = [
+  { label: "Pendientes", value: "Pendientes" },
+  { label: "Completados", value: "Completados" },
+  { label: "Denegados", value: "Denegados" },
+];
+
+const traducirEstado = (estado) => {
+  switch (estado) {
+    case "PDT":
+      return "Pendiente";
+    case "COM":
+      return "Completado";
+    case "DEN":
+      return "Denegado";
+    default:
+      return estado;
+  }
+};
+
+const mapearSolicitudes = (datos = []) =>
+  datos.map((item, idx) => ({
+    id: `${item.CueCod}-${item.DocCod}-${item.DocEst}-${idx}`,
+    CueCod: item.CueCod || "N/A",
+    AluNom: item.CueNom || "Sin nombre",
+    DocNom: item.DocNom || "Documento",
+    ReqObs: item.DocSolObs || "-",
+    CorNom: item.PlaNomEsp || "-",
+    BibNom: item.DocBibl || "N/A",
+    BecNom: "-", // Puedes reemplazar esto si tienes el campo en la data
+    FacNom: item.PlaAre || "-",
+    EstNom: traducirEstado(item.DocEst),
+  }));
+
+function Home() {
+  const [campusSeleccionado, setCampusSeleccionado] = useState("");
+  const [estadoTab, setEstadoTab] = useState(0);
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [listaCampus, setListaCampus] = useState([]);
+  const [cargando, setCargando] = useState(false);
+
+  const estadoActual = estados[estadoTab].value;
 
   useEffect(() => {
-  const cargarCampus = async () => {
-    const data = await obtenerCampus();
-    setCampusOptions(data);
+    const cargarCampus = async () => {
+      const campus = await obtenerCampus();
+      setListaCampus(campus);
+      if (campus.length > 0) {
+        setCampusSeleccionado(campus[0].CamCod);
+      }
+    };
+    cargarCampus();
+  }, []);
+
+  useEffect(() => {
+    const cargarSolicitudes = async () => {
+      if (campusSeleccionado) {
+        setCargando(true);
+        const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
+        setSolicitudes(mapearSolicitudes(data));
+        setCargando(false);
+      }
+    };
+    cargarSolicitudes();
+  }, [campusSeleccionado, estadoTab]);
+
+  const handleSearch = (event) => {
+    setBusqueda(event.target.value.toLowerCase());
   };
 
-  cargarCampus();
-}, []);
+  const filteredRows = solicitudes.filter((row) =>
+    Object.values(row).some(
+      (value) =>
+        typeof value === "string" &&
+        value.toLowerCase().includes(busqueda)
+    )
+  );
 
-  const registros = [
-    {
-      id: 1,
-      cuenta: "20201234567",
-      alumno: "Juan Pérez",
-      documento: "Constancia",
-      registro: "✔",
-      contabilidad: "✔",
-      biblioteca: "✘",
-      becas: "✔",
-      fecha: "2025-08-06",
-    },
-    {
-      id: 2,
-      cuenta: "20207654321",
-      alumno: "María López",
-      documento: "Historial",
-      registro: "✔",
-      contabilidad: "✘",
-      biblioteca: "✔",
-      becas: "✘",
-      fecha: "2025-08-05",
-    },
+  const columnas = [
+    { field: "CueCod", headerName: "Cuenta", flex: 1 },
+    { field: "AluNom", headerName: "Alumno", flex: 1.5 },
+    { field: "DocNom", headerName: "Documento", flex: 1 },
+    { field: "ReqObs", headerName: "Requiere", flex: 1 },
+    { field: "CorNom", headerName: "Carrera", flex: 1 },
+    { field: "BibNom", headerName: "Biblioteca", flex: 1 },
+    { field: "BecNom", headerName: "Beca", flex: 1 },
+    { field: "FacNom", headerName: "Facultad", flex: 1 },
+    { field: "EstNom", headerName: "Estado", flex: 1 },
   ];
 
-  const columns = [
-    { field: "cuenta", headerName: "Cuenta", flex: 1 },
-    { field: "alumno", headerName: "Alumno", flex: 1.5 },
-    { field: "documento", headerName: "Documento", flex: 1 },
-    { field: "registro", headerName: "Registro", flex: 0.7 },
-    { field: "contabilidad", headerName: "Contabilidad", flex: 1 },
-    { field: "biblioteca", headerName: "Biblioteca", flex: 1 },
-    { field: "becas", headerName: "Becas", flex: 1 },
-    { field: "fecha", headerName: "Fecha Solicitud", flex: 1.2 },
-  ];
-
-  return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      height="100vh"
-       width="100vw"
-      p={2}
-      gap={3}
-      sx={{ boxSizing: "border-box" }}
-    >
-      <Typography variant="h1" align="center">
+return (
+  <Box  sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh',
+      width: '100vw', // 👈 esto asegura que use el ancho completo
+      overflowX: 'hidden',
+    }}>
+    {/* Encabezado y filtros */}
+    <Box sx={{ px: 2, pt: 2, pb: 0 }}>
+      <Typography variant="h4" gutterBottom textAlign="center">
         Servicios Académicos
       </Typography>
 
-      <Box display="flex" justifyContent="center">
-        <FormControl sx={{ minWidth: 300 }}>
-          <InputLabel id="campus-label">Seleccionar Campus</InputLabel>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          mb: 2,
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
+        <FormControl sx={{ minWidth: 240 }}>
+          <InputLabel>Campus</InputLabel>
           <Select
-      labelId="campus-label"
-      value={campus}
-      onChange={handleCampusChange}
-      label="Seleccionar Campus"
-    >
-      {Array.isArray(campusOptions) &&
-  campusOptions.map((c) => (
-    <MenuItem key={c.CamCod} value={c.CamCod}>
-  {c.CamNomEsp}
-</MenuItem>
-  ))}
-    </Select>
+            value={campusSeleccionado}
+            onChange={(e) => setCampusSeleccionado(e.target.value)}
+            label="Campus"
+          >
+            {listaCampus.map((campus) => (
+              <MenuItem key={campus.CamCod} value={campus.CamCod}>
+                {campus.CamNomEsp}
+              </MenuItem>
+            ))}
+          </Select>
         </FormControl>
-      </Box>
 
-      <Box sx={{ flexGrow: 1, minHeight: 0, width: '100%', overflow: 'auto' }}>
-        <DataGrid
-          rows={registros}
-          columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[5, 10, 100]}
-          disableRowSelectionOnClick
-          sx={{
-            width: "100%",
-            height: '100%',
-            "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "#f5f5f5",
-              fontWeight: "bold",
-            },
-            "& .MuiDataGrid-row:hover": {
-              backgroundColor: "#f0f0f0",
-            },
-          }}
+        <TextField
+          label="Buscar"
+          variant="outlined"
+          value={busqueda}
+          onChange={handleSearch}
+          sx={{ minWidth: 300 }}
         />
       </Box>
+
+      <Paper elevation={2} sx={{ px: 90 }}>
+        <Tabs
+          value={estadoTab}
+          onChange={(e, newValue) => setEstadoTab(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
+         
+        >
+          {estados.map((estado, index) => (
+            <Tab key={index} label={estado.label} />
+          ))}
+        </Tabs>
+      </Paper>
     </Box>
-  );
+
+    {/* Tabla */}
+    <Box sx={{ flexGrow: 1, px: 2, pb: 6, display: 'flex', flexDirection: 'column' }}>
+  <Box
+  sx={{
+    width: '100%',
+    overflowX: 'auto',
+    px: 2, // padding horizontal (espacio en ambos lados)
+  }}
+>
+  <DataGrid
+    rows={filteredRows}
+    columns={columnas}
+    initialState={{
+      pagination: {
+        paginationModel: { pageSize: 25, page: 0 },
+      },
+    }}
+    pageSizeOptions={[10, 25, 50]}
+    autoHeight
+    sx={{
+      borderRadius: 2,
+      minWidth: '1000px',
+      backgroundColor: '#fff',
+    }}
+    localeText={{ noRowsLabel: "No hay solicitudes disponibles." }}
+  />
+</Box>
+</Box>
+  </Box>
+);
+
 }
 
 export default Home;
