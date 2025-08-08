@@ -28,15 +28,18 @@ const Topbar = () => {
 
 
   return (
-    <Box
-      display="flex"
-      justifyContent="space-between"
-      alignItems="center"
-      p={2}
-      backgroundColor={colors.CatoAccent[500]}
-      height="80px"
-      maxHeight="100px"
-    >
+   <Box
+  sx={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.CatoAccent[500],
+    height: 80,
+    width: '100%', // ✅ CRUCIAL: asegura que ocupe todo el ancho
+    px: 2,          // ✅ opcional, para dar padding interno
+    boxSizing: 'border-box', // ✅ asegura que el padding no rompa el ancho
+  }}
+>
       {/* Logo */}
       <Box display="flex" borderRadius="3px">
         <Box display="flex" alignItems="center">         

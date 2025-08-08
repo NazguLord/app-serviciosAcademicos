@@ -9,18 +9,17 @@ const Footer = () => {
 
   return (
     <Box
-      component="footer"
-      sx={{
-        backgroundColor: colors.CatoAccent[500],
-        color: colors.softWhiteAccent[500], // Aplica el color deseado a todo el texto
-        py: 1, // Reducido de 2 a 1
-        borderTop: `1px solid ${theme.palette.divider}`,
-        position: 'relative',
-        bottom: 0,
-        width: '100%',
-        mt: 'auto',
-      }}
-    >
+  component="footer"
+  sx={{
+    width: '100%',
+    overflowX: 'hidden',  // ✅ evita desborde
+    backgroundColor: colors.CatoAccent[500],
+    color: colors.softWhiteAccent[500],
+    py: 1,
+    borderTop: `1px solid ${theme.palette.divider}`,
+    mt: 'auto',
+  }}
+>
       <Container maxWidth="lg">
         <Grid container spacing={2} justifyContent="space-between">
           {/** Sección de Contacto */}

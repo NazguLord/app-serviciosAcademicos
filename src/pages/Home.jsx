@@ -25,14 +25,10 @@ const estados = [
 
 const traducirEstado = (estado) => {
   switch (estado) {
-    case "PDT":
-      return "Pendiente";
-    case "COM":
-      return "Completado";
-    case "DEN":
-      return "Denegado";
-    default:
-      return estado;
+    case "PDT": return "Pendiente";
+    case "COM": return "Completado";
+    case "DEN": return "Denegado";
+    default: return estado;
   }
 };
 
@@ -45,7 +41,7 @@ const mapearSolicitudes = (datos = []) =>
     ReqObs: item.DocSolObs || "-",
     CorNom: item.PlaNomEsp || "-",
     BibNom: item.DocBibl || "N/A",
-    BecNom: "-", // Puedes reemplazar esto si tienes el campo en la data
+    BecNom: "-",
     FacNom: item.PlaAre || "-",
     EstNom: traducirEstado(item.DocEst),
   }));
@@ -83,8 +79,8 @@ function Home() {
     cargarSolicitudes();
   }, [campusSeleccionado, estadoTab]);
 
-  const handleSearch = (event) => {
-    setBusqueda(event.target.value.toLowerCase());
+  const handleSearch = (e) => {
+    setBusqueda(e.target.value.toLowerCase());
   };
 
   const filteredRows = solicitudes.filter((row) =>
@@ -107,99 +103,106 @@ function Home() {
     { field: "EstNom", headerName: "Estado", flex: 1 },
   ];
 
-return (
-  <Box  sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '100vh',
-      width: '100vw', // 👈 esto asegura que use el ancho completo
-      overflowX: 'hidden',
-    }}>
-    {/* Encabezado y filtros */}
-    <Box sx={{ px: 2, pt: 2, pb: 0 }}>
-      <Typography variant="h4" gutterBottom textAlign="center">
-        Servicios Académicos
-      </Typography>
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        width: "100%",
+        overflowX: "hidden",
+      }}
+    >
+      {/* Filtros y título */}
+      <Box sx={{ px: 2, pt: 2 }}>
+        <Typography variant="h4" gutterBottom textAlign="center">
+          Servicios Académicos
+        </Typography>
 
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          mb: 2,
-          flexWrap: "wrap",
-          justifyContent: "center",
-        }}
-      >
-        <FormControl sx={{ minWidth: 240 }}>
-          <InputLabel>Campus</InputLabel>
-          <Select
-            value={campusSeleccionado}
-            onChange={(e) => setCampusSeleccionado(e.target.value)}
-            label="Campus"
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            mb: 2,
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}
+        >
+          <FormControl sx={{ minWidth: 240 }}>
+            <InputLabel>Campus</InputLabel>
+            <Select
+              value={campusSeleccionado}
+              onChange={(e) => setCampusSeleccionado(e.target.value)}
+              label="Campus"
+            >
+              {listaCampus.map((campus) => (
+                <MenuItem key={campus.CamCod} value={campus.CamCod}>
+                  {campus.CamNomEsp}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Buscar"
+            variant="outlined"
+            value={busqueda}
+            onChange={handleSearch}
+            sx={{ minWidth: 300 }}
+          />
+        </Box>
+
+        <Paper
+          elevation={2}
+          sx={{
+            maxWidth: 500,
+            width: "100%",
+            mx: "auto",
+            borderRadius: 2,
+            mb: 2,
+          }}
+        >
+          <Tabs
+            value={estadoTab}
+            onChange={(e, newValue) => setEstadoTab(newValue)}
+            centered
+            textColor="primary"
+            indicatorColor="primary"
           >
-            {listaCampus.map((campus) => (
-              <MenuItem key={campus.CamCod} value={campus.CamCod}>
-                {campus.CamNomEsp}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <TextField
-          label="Buscar"
-          variant="outlined"
-          value={busqueda}
-          onChange={handleSearch}
-          sx={{ minWidth: 300 }}
-        />
+            <Tab label="PENDIENTES" sx={{ color: "#1976d2" }} />
+            <Tab label="COMPLETADOS" sx={{ color: "#2e7d32" }} />
+            <Tab label="DENEGADOS" sx={{ color: "#d32f2f" }} />
+          </Tabs>
+        </Paper>
       </Box>
 
-      <Paper elevation={2} sx={{ px: 90 }}>
-        <Tabs
-          value={estadoTab}
-          onChange={(e, newValue) => setEstadoTab(newValue)}
-          variant="scrollable"
-          scrollButtons="auto"
-         
-        >
-          {estados.map((estado, index) => (
-            <Tab key={index} label={estado.label} />
-          ))}
-        </Tabs>
-      </Paper>
+      {/* Tabla */}
+      <Box sx={{ flexGrow: 1, px: 2, pb: 6 }}>
+        <Box sx={{ overflowX: "auto" }}>
+          <Box sx={{ width: '100%', minWidth: 800 }}>
+            <DataGrid
+              rows={filteredRows}
+              columns={columnas}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 10, page: 0 },
+                },
+              }}
+              pageSizeOptions={[10, 25, 50]}
+              autoHeight
+              sx={{
+                borderRadius: 2,
+                backgroundColor: "#fff",
+              }}
+              localeText={{
+                noRowsLabel: "No hay solicitudes disponibles.",
+              }}
+            />
+          </Box>
+        </Box>
+      </Box>
     </Box>
-
-    {/* Tabla */}
-    <Box sx={{ flexGrow: 1, px: 2, pb: 6, display: 'flex', flexDirection: 'column' }}>
-  <Box
-  sx={{
-    width: '100%',
-    overflowX: 'auto',
-    px: 2, // padding horizontal (espacio en ambos lados)
-  }}
->
-  <DataGrid
-    rows={filteredRows}
-    columns={columnas}
-    initialState={{
-      pagination: {
-        paginationModel: { pageSize: 25, page: 0 },
-      },
-    }}
-    pageSizeOptions={[10, 25, 50]}
-    autoHeight
-    sx={{
-      borderRadius: 2,
-      minWidth: '1000px',
-      backgroundColor: '#fff',
-    }}
-    localeText={{ noRowsLabel: "No hay solicitudes disponibles." }}
-  />
-</Box>
-</Box>
-  </Box>
-);
-
+  );
 }
 
 export default Home;
