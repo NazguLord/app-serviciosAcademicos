@@ -3,13 +3,13 @@ html, body, #root {
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow-x: hidden; /* 💀 MATA EL SCROLL HORIZONTAL */
+
 }
 
 #root {
   display: flex;
   flex-direction: column;
-  overflow-y: auto; /* solo scroll vertical cuando se necesite */
+  min-height: 100vh;
 }
 
 .logo {
