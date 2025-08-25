@@ -1,20 +1,11 @@
 // src/pages/Home.jsx
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Typography,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  TextField,
-  Tabs,
-  Tab,
-  Paper,
+import React, { useState, useEffect, useContext  } from "react";
+import {  Box,  Typography,  Select,  MenuItem,  FormControl,  InputLabel,  TextField,  Tabs,  Tab,  Paper,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { obtenerCampus } from "../api/campusApi";
 import { obtenerSolicitudes } from "../api/solicitudesApi";
+import { AppContext } from "../context/AppContext"; 
 
 const estados = [
   { label: "Pendientes", value: "Pendientes" },
@@ -50,6 +41,13 @@ const mapearSolicitudes = (datos = []) =>
   }));
 
 function Home() {
+  const { userData, sessionValid } = useContext(AppContext); 
+
+  useEffect(() => {
+  console.log("👤 userData desde AppContext:", userData);
+  console.log("🔐 sessionValid:", sessionValid);
+}, [userData, sessionValid]);
+
   const [campusSeleccionado, setCampusSeleccionado] = useState("");
   const [estadoTab, setEstadoTab] = useState(0);
   const [solicitudes, setSolicitudes] = useState([]);
