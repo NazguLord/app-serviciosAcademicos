@@ -1,3 +1,4 @@
+// src/pages/TopBar.jsx
 import { Box, IconButton, useTheme, Avatar, Tooltip } from "@mui/material";
 import { useContext } from "react";
 import { ColorModeContext, tokens } from "../theme";
@@ -7,24 +8,26 @@ import LogoutIcon from "@mui/icons-material/Logout"; // Ícono de Logout
 import axios from "axios"; // Importa Axios
 import logo from "../assets/CircularFondoAzul.png";
 import logo2 from "../assets/CircularFullColor.png";
+import { AppContext } from "../context/AppContext";
 
 const Topbar = () => {
+  const { logout } = useContext(AppContext);
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const colorMode = useContext(ColorModeContext);
 
 
-  const salir = () => {
-    axios.post(
-        process.env.REACT_APP_API_LOGIN,
-        {},
-        { headers: { 'Content-Type': 'application/json' }, withCredentials: true }
-    )
-    .then(() => {
-        window.location.href = process.env.REACT_APP_RUTA_LOGIN;
-    })
-    .catch(error => console.error('Error al cerrar sesión:', error));
-}
+const salir = () => {
+  axios.post(
+    import.meta.env.VITE_API_LOGOUT, // 👈 Vite usa import.meta.env
+    {},
+    { headers: { 'Content-Type': 'application/json' }, withCredentials: true }
+  )
+  .then(() => {
+    window.location.href = import.meta.env.VITE_RUTA_LOGIN; // 👈 también aquí
+  })
+  .catch(error => console.error('Error al cerrar sesión:', error));
+};
 
 
   return (

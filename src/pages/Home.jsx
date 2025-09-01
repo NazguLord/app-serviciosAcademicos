@@ -6,6 +6,8 @@ import { DataGrid } from "@mui/x-data-grid";
 import { obtenerCampus } from "../api/campusApi";
 import { obtenerSolicitudes } from "../api/solicitudesApi";
 import { AppContext } from "../context/AppContext"; 
+import SchoolIcon from "@mui/icons-material/School";
+import { useTheme } from "@mui/material/styles";
 
 const estados = [
   { label: "Pendientes", value: "Pendientes" },
@@ -42,7 +44,8 @@ const mapearSolicitudes = (datos = []) =>
 
 function Home() {
   const { userData, sessionValid } = useContext(AppContext); 
-
+const theme = useTheme();
+const isDark = theme.palette.mode === "dark";
   useEffect(() => {
   console.log("👤 userData desde AppContext:", userData);
   console.log("🔐 sessionValid:", sessionValid);
@@ -117,9 +120,59 @@ function Home() {
       }}
     >
       {/* Título y filtros */}
-      <Typography variant="h4" gutterBottom textAlign="center">
-        Servicios Académicos
-      </Typography>
+      <Box
+  sx={{
+    textAlign: "center",
+    mb: 4,
+    mt: 1,
+  }}
+>
+  <Box
+    sx={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 1,
+    }}
+  >
+    <SchoolIcon
+      sx={{
+        fontSize: 42,
+        color: isDark ? "#90caf9" : "#1976d2",
+        textShadow: isDark ? "0 0 5px rgba(144,202,249,0.6)" : "none",
+      }}
+    />
+    <Typography
+      variant="h3"
+      sx={{
+        fontWeight: 700,
+        letterSpacing: 1,
+        color: isDark ? "#ffffff" : "#0d47a1",
+        textShadow: isDark
+          ? "1px 1px 2px rgba(0,0,0,0.8)"
+          : "1px 1px 2px rgba(0,0,0,0.1)",
+      }}
+    >
+      Servicios Académicos
+    </Typography>
+  </Box>
+
+  {/* Línea decorativa con degradado */}
+  <Box
+    sx={{
+      height: 4,
+      width: 160,
+      margin: "12px auto 0",
+      borderRadius: 2,
+      background: isDark
+        ? "linear-gradient(90deg, #1976d2, #42a5f5)"
+        : "linear-gradient(90deg, #0d47a1, #64b5f6)",
+      boxShadow: isDark
+        ? "0 0 8px rgba(66,165,245,0.6)"
+        : "0 0 4px rgba(66,165,245,0.3)",
+    }}
+  />
+</Box>
 
       <Box
         sx={{
