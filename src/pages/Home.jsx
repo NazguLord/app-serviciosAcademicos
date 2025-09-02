@@ -28,17 +28,17 @@ const traducirEstado = (estado) => {
   }
 };
 
+
 const mapearSolicitudes = (datos = []) =>
   datos.map((item, idx) => ({
     id: `${item.CueCod}-${item.DocCod}-${item.DocEst}-${idx}`,
     CueCod: item.CueCod || "N/A",
     AluNom: item.CueNom || "Sin nombre",
     DocNom: item.DocNom || "Documento",
-    ReqObs: item.DocSolObs || "-",
-    CorNom: item.PlaNomEsp || "-",
-    BibNom: item.DocBibl || "N/A",
-    BecNom: "-",
-    FacNom: item.PlaAre || "-",
+    EstReg: item.estadoreg  || "-",
+    CorNom: item.estadocond || "-",
+    EstCont: item.estadocont  || "N/A",
+    BecNom: "-",    
     EstNom: traducirEstado(item.DocEst),
   }));
 
@@ -95,16 +95,31 @@ const isDark = theme.palette.mode === "dark";
     )
   );
 
+  const renderEstado = (value) => {
+  const v = String(value ?? "").trim().toUpperCase();
+  const color =
+    v === "OK"
+      ? theme.palette.success.main
+      : v === "PDT"
+      ? theme.palette.error.main
+      : theme.palette.text.secondary;
+
+  return (
+    <span style={{ color, fontWeight: 700 }}>
+      {v || "-"}
+    </span>
+  );
+};
+
   const columnas = [
-    { field: "CueCod", headerName: "Cuenta", width: 140 },
-    { field: "AluNom", headerName: "Alumno", width: 200 },
-    { field: "DocNom", headerName: "Documento", width: 170 },
-    { field: "ReqObs", headerName: "Requiere", width: 200 },
-    { field: "CorNom", headerName: "Carrera", width: 150 },
-    { field: "BibNom", headerName: "Biblioteca", width: 120 },
-    { field: "BecNom", headerName: "Programa Becas", width: 150 },
-    { field: "FacNom", headerName: "Facultad", width: 120 },
-    { field: "EstNom", headerName: "Estado", width: 130 },
+    { field: "CueCod", headerName: "Cuenta", width: 140, headerAlign: "center" },
+    { field: "AluNom", headerName: "Alumno", width: 200, headerAlign: "center" },
+    { field: "DocNom", headerName: "Documento", width: 170, headerAlign: "center" },
+    { field: "EstReg", headerName: "Registro", width: 200, headerAlign: "center", renderCell: (params) => renderEstado(params.value)},
+    { field: "CorNom", headerName: "Biblioteca", width: 150, headerAlign: "center", renderCell: (params) => renderEstado(params.value) },
+    { field: "EstCont", headerName: "Contabilidad", width: 120, headerAlign: "center", renderCell: (params) => renderEstado(params.value) },
+    { field: "BecNom", headerName: "Programa Becas", width: 150, headerAlign: "center" },    
+    { field: "EstNom", headerName: "Estado", width: 130, headerAlign: "center" },
   ];
 
   return (
