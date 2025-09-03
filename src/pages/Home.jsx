@@ -1,31 +1,43 @@
 // src/pages/Home.jsx
 import React, { useState, useEffect, useContext  } from "react";
 import {  Box,  Typography,  Select,  MenuItem,  FormControl,  InputLabel,  TextField,  Tabs,  Tab,  Paper,
-} from "@mui/material";
+Dialog, DialogTitle, DialogContent, IconButton, Tooltip, Chip, Stack, Divider, DialogActions, Grid } from "@mui/material";
+import ManageSearchRoundedIcon from "@mui/icons-material/ManageSearchRounded";
+import { alpha } from "@mui/material/styles";
+
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
+import HorizontalRuleRoundedIcon from "@mui/icons-material/HorizontalRuleRounded";
+import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+
+
 import { DataGrid } from "@mui/x-data-grid";
 import { obtenerCampus } from "../api/campusApi";
 import { obtenerSolicitudes } from "../api/solicitudesApi";
 import { AppContext } from "../context/AppContext"; 
 import SchoolIcon from "@mui/icons-material/School";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 const estados = [
   { label: "Pendientes", value: "Pendientes" },
+  { label: "Proceso", value: "Proceso" },
   { label: "Completados", value: "Completados" },
   { label: "Denegados", value: "Denegados" },
 ];
 
 const traducirEstado = (estado) => {
-  switch (estado) {
-    case "PDT":
-      return "Pendiente";
-    case "COM":
-      return "Completado";
-    case "DEN":
-      return "Denegado";
-    default:
-      return estado;
-  }
+  const map = {
+    PDT:  "Pendiente",
+    PGD:  "En proceso",
+    DNG:  "Denegado",
+    PDTP: "Pendiente de pago",
+    CMP:  "En proceso de entrega",
+    FIN:  "Entregado",
+  };
+  const code = String(estado ?? "").trim().toUpperCase();
+  return map[code] ?? (code || "-");
 };
 
 
@@ -39,12 +51,46 @@ const mapearSolicitudes = (datos = []) =>
     CorNom: item.estadocond || "-",
     EstCont: item.estadocont  || "N/A",
     BecNom: "-",    
+    DocEstRaw: String(item.DocEst || "").trim().toUpperCase(),
     EstNom: traducirEstado(item.DocEst),
+    CueMailIns: item.CueMailIns || "-",
+    CueTel: item.CueTel || "-",
+    PlaNomEsp: item.PlaNomEsp || "-",
+    DocLeng: item.DocLeng || "-",
+    DocFchCre: item.DocFchCre || null,  // ISO/fecha del backend
+    DocSolObs: item.DocSolObs || "-",   // observaciones
   }));
 
 function Home() {
-  const { userData, sessionValid } = useContext(AppContext); 
+const { userData, sessionValid } = useContext(AppContext); 
 const theme = useTheme();
+const isMdDown = useMediaQuery(theme.breakpoints.down("md")); // <=960px
+const isSmDown = useMediaQuery(theme.breakpoints.down("sm")); // <=600px
+const headerDocumento = isSmDown ? "Doc." : "Documento";
+const headerBecas     = isMdDown ? "Becas" : "Programa Becas";
+
+// visibilidad por breakpoint
+const columnVisibilityModel = {
+   BecNom: !isMdDown,   // oculta "Becas" en md y abajo
+  EstNom: !isSmDown, 
+};
+
+const handleOpenDetalle = (row) => {
+  console.log("Detalle de:", row);
+  // aquí abrirás el modal/route; por ahora es un placeholder
+};
+
+const formatFechaSoloDia = (input) => {
+  if (!input) return "-";
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) {
+    // fallback: corta por espacio si viene "dd/mm/aaaa hh:mm"
+    return String(input).split(" ")[0];
+  }
+  // ajusta el locale si quieres otro
+  return d.toLocaleDateString("es-HN", { day: "numeric", month: "numeric", year: "numeric" });
+};
+
 const isDark = theme.palette.mode === "dark";
   useEffect(() => {
   console.log("👤 userData desde AppContext:", userData);
@@ -72,16 +118,18 @@ const isDark = theme.palette.mode === "dark";
   }, []);
 
   useEffect(() => {
-    const cargarSolicitudes = async () => {
-      if (campusSeleccionado) {
-        setCargando(true);
-        const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
-        setSolicitudes(mapearSolicitudes(data));
-        setCargando(false);
-      }
-    };
-    cargarSolicitudes();
-  }, [campusSeleccionado, estadoTab]);
+  const cargarSolicitudes = async () => {
+    if (!campusSeleccionado) return;
+    setCargando(true);
+
+    // ahora el backend entiende "Proceso"
+    const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
+
+    setSolicitudes(mapearSolicitudes(data));
+    setCargando(false);
+  };
+  cargarSolicitudes();
+}, [campusSeleccionado, estadoTab]);
 
   const handleSearch = (e) => {
     setBusqueda(e.target.value.toLowerCase());
@@ -111,16 +159,143 @@ const isDark = theme.palette.mode === "dark";
   );
 };
 
+
+const [openDetalle, setOpenDetalle] = useState(false);
+const [filaSel, setFilaSel] = useState(null);
+
+const abrirDetalle = (row) => { setFilaSel(row); setOpenDetalle(true); };
+const cerrarDetalle = () => setOpenDetalle(false);
+
+// Color del estado “general” (columna Estado)
+const colorEstado = (txt) =>
+  txt === "Denegado"   ? theme.palette.error.main
+: txt === "Entregado" ? theme.palette.success.main
+:                       theme.palette.warning.main;
+
+// Chip para Registro/Biblioteca/Contabilidad
+const chipSemaforo = (valor) => {
+  const v = String(valor ?? "").trim().toUpperCase();
+  const ok  = v === "OK";
+  const pdt = v === "PDT" || v === "PDTP";
+
+  const color = ok
+    ? theme.palette.success.main
+    : pdt
+    ? theme.palette.error.main
+    : theme.palette.text.secondary;
+
+  return (
+    <Chip
+      size="small"
+      variant="outlined"
+      icon={ok ? <CheckCircleRoundedIcon /> : <CancelRoundedIcon />}
+      label={v || "-"}
+      sx={{ color, borderColor: color, fontWeight: 700, height: 28 }}
+    />
+  );
+};
+
+// ✓ / × centrado y en color
+const renderCheck = (value) => {
+  const v = String(value ?? "").trim().toUpperCase();
+  const isOK  = v === "OK";
+  const isPDT = v === "PDT" || v === "PDTP";
+
+  if (isOK) {
+    return <CheckCircleRoundedIcon sx={{ fontSize: 18, color: theme.palette.success.main }} />;
+  }
+  if (isPDT) {
+    return <CancelRoundedIcon sx={{ fontSize: 18, color: theme.palette.error.main }} />;
+  }
+  return <HorizontalRuleRoundedIcon sx={{ fontSize: 18, color: theme.palette.text.disabled }} />;
+};
+
+const renderEllipsis = (text) => (
+  <span title={text} style={{ display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+    {text}
+  </span>
+);
+
   const columnas = [
-    { field: "CueCod", headerName: "Cuenta", width: 140, headerAlign: "center" },
-    { field: "AluNom", headerName: "Alumno", width: 200, headerAlign: "center" },
-    { field: "DocNom", headerName: "Documento", width: 170, headerAlign: "center" },
-    { field: "EstReg", headerName: "Registro", width: 200, headerAlign: "center", renderCell: (params) => renderEstado(params.value)},
-    { field: "CorNom", headerName: "Biblioteca", width: 150, headerAlign: "center", renderCell: (params) => renderEstado(params.value) },
-    { field: "EstCont", headerName: "Contabilidad", width: 120, headerAlign: "center", renderCell: (params) => renderEstado(params.value) },
-    { field: "BecNom", headerName: "Programa Becas", width: 150, headerAlign: "center" },    
-    { field: "EstNom", headerName: "Estado", width: 130, headerAlign: "center" },
-  ];
+  // 1) Pegadas y con elipsis donde aplica
+  { field: "CueCod", headerName: "Cuenta",   flex: 0.55, minWidth: 110, headerAlign: "center" },
+  {
+    field: "AluNom", headerName: "Alumno",
+    flex: 0.9, minWidth: 170, headerAlign: "center",
+    renderCell: (p) => renderEllipsis(p.value),
+  },
+  // Documento un poco más compacto para acercar "Registro"
+  { field: "DocNom", headerName: "Documento",  width: 220,  minWidth: 100, headerAlign: "center" },
+
+  // 2) Cuatro columnas cortas (✓ / ×)
+  {
+    field: "EstReg", headerName: "Registro",
+    flex: 0.28, minWidth: 58, headerAlign: "center", align: "center",
+    sortable: false, disableColumnMenu: true,
+    renderCell: (p) => renderCheck(p.value),
+  },
+  {
+    field: "CorNom", headerName: "Biblioteca",
+    flex: 0.28, minWidth: 58, headerAlign: "center", align: "center",
+    sortable: false, disableColumnMenu: true,
+    renderCell: (p) => renderCheck(p.value),
+  },
+  {
+    field: "EstCont", headerName: "Contabilidad",
+    flex: 0.28, minWidth: 58, headerAlign: "center", align: "center",
+    sortable: false, disableColumnMenu: true,
+    renderCell: (p) => renderCheck(p.value),
+  },
+  {
+    field: "BecNom", headerName: "Becas",
+    flex: 0.28, minWidth: 58, headerAlign: "center", align: "center",
+    sortable: false, disableColumnMenu: true,
+    renderCell: (p) => <span style={{ fontWeight: 700 }}>{(p.value ?? "-") === "-" ? "–" : p.value}</span>,
+  },
+
+  // 3) Estado corto (antes de Detalle)
+  { field: "EstNom", headerName: "Estado", flex: 0.38, minWidth: 82, headerAlign: "center", align: "center", 
+    renderCell: ({ value }) => {
+    const txt = value ?? "-";
+    const color =
+      txt === "Denegado"
+        ? theme.palette.error.main      // rojo
+        : txt === "Entregado"
+        ? theme.palette.success.main    // verde
+        : theme.palette.warning.main;   // anaranjado (resto)
+
+    return <span style={{ color, fontWeight: 700 }}>{txt}</span>; },
+    },
+
+  {
+  field: "Detalle",
+  headerName: "Detalle",
+  flex: 0.26,
+  minWidth: 56,
+  headerAlign: "center",
+  align: "center",
+  sortable: false,
+  disableColumnMenu: true,
+  renderCell: (params) => (
+    <Tooltip title="Ver detalle">
+      <IconButton
+        size="small"
+        onClick={(e) => { e.stopPropagation(); abrirDetalle(params.row); }}
+        aria-label="Ver detalle"
+        sx={{
+          color: theme.palette.info.main, // color del ícono
+          bgcolor: alpha(theme.palette.info.main, 0.12), // fondo suave
+          "&:hover": { bgcolor: alpha(theme.palette.info.main, 0.22) },
+          boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.info.main, 0.28)}`,
+          borderRadius: 2, // esquinas suaves (8px)
+        }}
+      >
+        <ManageSearchRoundedIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
+  ),
+},
+];
 
   return (
     <Box
@@ -241,6 +416,7 @@ const isDark = theme.palette.mode === "dark";
           indicatorColor="primary"
         >
           <Tab label="PENDIENTES" sx={{ color: "#1976d2" }} />
+          <Tab label="PROCESO" sx={{ color: theme.palette.warning.main }} />
           <Tab label="COMPLETADOS" sx={{ color: "#2e7d32" }} />
           <Tab label="DENEGADOS" sx={{ color: "#d32f2f" }} />
         </Tabs>
@@ -259,6 +435,8 @@ const isDark = theme.palette.mode === "dark";
       <DataGrid
   rows={filteredRows}
   columns={columnas}
+  columnVisibilityModel={columnVisibilityModel}
+  density={isMdDown ? "compact" : "standard"}
   initialState={{
     pagination: {
       paginationModel: { pageSize: 10, page: 0 },
@@ -272,14 +450,22 @@ const isDark = theme.palette.mode === "dark";
     color: theme.palette.mode === "dark" ? "#fff" : "#000",
     backgroundColor:
       theme.palette.mode === "dark" ? "#0f172a" : "#fff", // fondo oscuro
+
+     "& .MuiDataGrid-columnHeaderTitleContainer": {
+      justifyContent: "center",
+    },
+
     "& .MuiDataGrid-columnHeaders": {
       backgroundColor: theme.palette.mode === "dark" ? "#003366" : "#1976d2",
       color: "#fff",
       fontWeight: "bold",
+       minHeight: isSmDown ? 44 : 56,
+      maxHeight: isSmDown ? 44 : 56,
     },
     "& .MuiDataGrid-cell": {
       borderBottom: "1px solid",
       borderColor: theme.palette.divider,
+       fontSize: isSmDown ? 13 : 14,
     },
     "& .MuiDataGrid-row": {
       backgroundColor:
@@ -301,6 +487,117 @@ const isDark = theme.palette.mode === "dark";
   }}
   loading={cargando}
 />
+<Dialog open={openDetalle} onClose={cerrarDetalle} maxWidth="sm" fullWidth>
+  <DialogTitle sx={{ pr: 8, py: 1.5 }}>
+  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 4 }}>
+    <Typography variant="h6" fontWeight={700}>
+      Detalle de solicitud
+    </Typography>
+
+    <Chip
+      label={filaSel?.EstNom || "-"}
+      sx={{
+        bgcolor: alpha(colorEstado(filaSel?.EstNom || ""), 0.12),
+        color: colorEstado(filaSel?.EstNom || ""),
+        fontWeight: 700,
+      }}
+    />
+  </Box>
+
+  <IconButton
+    onClick={cerrarDetalle}
+    sx={{ position: "absolute", right: 8, top: 8 }}
+    aria-label="Cerrar"
+  >
+    <CloseRoundedIcon />
+  </IconButton>
+</DialogTitle>
+
+  <DialogContent dividers>
+  <Stack spacing={2}>
+    {/* Datos principales */}
+    <Grid container spacing={2}>
+      <Grid item xs={12} sm={6}>
+        <Typography variant="body2" fontWeight={700}>Cuenta:</Typography>
+        <Typography variant="body2">{filaSel?.CueCod || "-"}</Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography variant="body2" fontWeight={700}>Alumno:</Typography>
+        <Typography variant="body2">{filaSel?.AluNom || "-"}</Typography>
+      </Grid>
+
+      <Grid item xs={12} sm={6}>
+        <Typography variant="body2" fontWeight={700}>Correo institucional:</Typography>
+        <Typography variant="body2">
+          {filaSel?.CueMailIns && filaSel.CueMailIns !== "-"
+            ? <a href={`mailto:${filaSel.CueMailIns}`}>{filaSel.CueMailIns}</a>
+            : "-"}
+        </Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography variant="body2" fontWeight={700}>Teléfono:</Typography>
+        <Typography variant="body2">{filaSel?.CueTel || "-"}</Typography>
+      </Grid>
+
+      <Grid item xs={12} sm={6}>
+        <Typography variant="body2" fontWeight={700}>Carrera / Plan:</Typography>
+        <Typography variant="body2">{filaSel?.PlaNomEsp || "-"}</Typography>
+      </Grid>
+      <Grid item xs={12} sm={6}>
+        <Typography variant="body2" fontWeight={700}>Documento:</Typography>
+        <Typography variant="body2">
+          {filaSel?.DocNom || "-"}{filaSel?.DocLeng && ` (${filaSel.DocLeng})`}
+        </Typography>
+      </Grid>
+       <Grid item xs={12} sm={6}>
+        <Typography variant="body2" fontWeight={700}>Fecha de solicitud:</Typography>
+        {formatFechaSoloDia(filaSel?.DocFchCre)}
+      </Grid>
+    </Grid>
+
+    <Divider />
+
+    {/* Dependencias */}
+    <Stack
+  direction="row"
+  spacing={3}
+  justifyContent="center"
+  alignItems="center"
+  flexWrap="wrap"
+  sx={{ textAlign: "center" }}
+>
+  <Stack direction="row" spacing={1} alignItems="center">
+    <Typography variant="body2"><b>Registro</b></Typography>
+    {chipSemaforo(filaSel?.EstReg)}
+  </Stack>
+
+  <Stack direction="row" spacing={1} alignItems="center">
+    <Typography variant="body2"><b>Biblioteca</b></Typography>
+    {chipSemaforo(filaSel?.CorNom)}
+  </Stack>
+
+  <Stack direction="row" spacing={1} alignItems="center">
+    <Typography variant="body2"><b>Contabilidad</b></Typography>
+    {chipSemaforo(filaSel?.EstCont)}
+  </Stack>
+</Stack>
+
+    <Divider />
+
+    <Grid container spacing={2}>
+     
+      
+
+      <Grid item xs={12}>
+        <Typography variant="body2" fontWeight={700}>Observaciones:</Typography>
+        <Typography variant="body2" sx={{ whiteSpace: "pre-line" }}>
+          {filaSel?.DocSolObs || "-"}
+        </Typography>
+      </Grid>
+    </Grid>
+  </Stack>
+</DialogContent>
+</Dialog>
       </Box>
     </Box>
   );
