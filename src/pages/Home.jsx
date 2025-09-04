@@ -50,7 +50,7 @@ const mapearSolicitudes = (datos = []) =>
     EstReg: item.estadoreg  || "-",
     CorNom: item.estadocond || "-",
     EstCont: item.estadocont  || "N/A",
-    BecNom: "-",    
+    BecNom: item.estadobeca|| "-",    
     DocEstRaw: String(item.DocEst || "").trim().toUpperCase(),
     EstNom: traducirEstado(item.DocEst),
     CueMailIns: item.CueMailIns || "-",
@@ -163,7 +163,11 @@ const isDark = theme.palette.mode === "dark";
 const [openDetalle, setOpenDetalle] = useState(false);
 const [filaSel, setFilaSel] = useState(null);
 
-const abrirDetalle = (row) => { setFilaSel(row); setOpenDetalle(true); };
+const abrirDetalle = (row, e) => {
+  e?.currentTarget?.blur?.();              // quita el foco del botón que abrió
+  setFilaSel(row);
+  setTimeout(() => setOpenDetalle(true), 0); // opcional, ayuda a Chrome
+};
 const cerrarDetalle = () => setOpenDetalle(false);
 
 // Color del estado “general” (columna Estado)
@@ -171,6 +175,24 @@ const colorEstado = (txt) =>
   txt === "Denegado"   ? theme.palette.error.main
 : txt === "Entregado" ? theme.palette.success.main
 :                       theme.palette.warning.main;
+
+const estadoColor = (nombre = "") => {
+  const txt = String(nombre).trim().toLowerCase();
+
+  // 1) Denegado
+  if (txt.includes("deneg")) return theme.palette.error.main;
+
+  // 2) Entregado (match exacto para no confundir con "entrega")
+  if (txt === "entregado") return theme.palette.success.main;
+
+  // 3) Proceso (cubre "en proceso" y "en proceso de entrega")
+  if (txt.includes("proceso")) return theme.palette.warning.dark;
+
+  // 4) Pendiente / Pendiente de pago
+  if (txt.startsWith("pendient")) return theme.palette.warning.light;
+
+  return theme.palette.text.secondary;
+};
 
 // Chip para Registro/Biblioteca/Contabilidad
 const chipSemaforo = (valor) => {
@@ -218,10 +240,10 @@ const renderEllipsis = (text) => (
 
   const columnas = [
   // 1) Pegadas y con elipsis donde aplica
-  { field: "CueCod", headerName: "Cuenta",   flex: 0.55, minWidth: 110, headerAlign: "center" },
+  { field: "CueCod", headerName: "Cuenta",   width:160, minWidth: 110, headerAlign: "center" },
   {
     field: "AluNom", headerName: "Alumno",
-    flex: 0.9, minWidth: 170, headerAlign: "center",
+    width:280, minWidth: 170, headerAlign: "center",
     renderCell: (p) => renderEllipsis(p.value),
   },
   // Documento un poco más compacto para acercar "Registro"
@@ -250,21 +272,16 @@ const renderEllipsis = (text) => (
     field: "BecNom", headerName: "Becas",
     flex: 0.28, minWidth: 58, headerAlign: "center", align: "center",
     sortable: false, disableColumnMenu: true,
-    renderCell: (p) => <span style={{ fontWeight: 700 }}>{(p.value ?? "-") === "-" ? "–" : p.value}</span>,
+     renderCell: (p) => renderCheck(p.value),
   },
 
   // 3) Estado corto (antes de Detalle)
   { field: "EstNom", headerName: "Estado", flex: 0.38, minWidth: 82, headerAlign: "center", align: "center", 
-    renderCell: ({ value }) => {
-    const txt = value ?? "-";
-    const color =
-      txt === "Denegado"
-        ? theme.palette.error.main      // rojo
-        : txt === "Entregado"
-        ? theme.palette.success.main    // verde
-        : theme.palette.warning.main;   // anaranjado (resto)
-
-    return <span style={{ color, fontWeight: 700 }}>{txt}</span>; },
+    renderCell: ({ value }) => (
+    <span style={{ color: estadoColor(value), fontWeight: 700 }}>
+      {value ?? "-"}
+    </span>
+  ),
     },
 
   {
@@ -280,7 +297,7 @@ const renderEllipsis = (text) => (
     <Tooltip title="Ver detalle">
       <IconButton
         size="small"
-        onClick={(e) => { e.stopPropagation(); abrirDetalle(params.row); }}
+        onClick={(e) => { e.stopPropagation(); abrirDetalle(params.row, e); }}
         aria-label="Ver detalle"
         sx={{
           color: theme.palette.info.main, // color del ícono
@@ -415,10 +432,10 @@ const renderEllipsis = (text) => (
           textColor="primary"
           indicatorColor="primary"
         >
-          <Tab label="PENDIENTES" sx={{ color: "#1976d2" }} />
-          <Tab label="PROCESO" sx={{ color: theme.palette.warning.main }} />
-          <Tab label="COMPLETADOS" sx={{ color: "#2e7d32" }} />
-          <Tab label="DENEGADOS" sx={{ color: "#d32f2f" }} />
+         <Tab label="PENDIENTES"  sx={{ color: theme.palette.warning.light }} />
+         <Tab label="PROCESO"     sx={{ color: theme.palette.warning.dark  }} />
+         <Tab label="COMPLETADOS" sx={{ color: theme.palette.success.main  }} />
+         <Tab label="DENEGADOS"   sx={{ color: theme.palette.error.main    }} />
         </Tabs>
       </Paper>
 
@@ -487,7 +504,7 @@ const renderEllipsis = (text) => (
   }}
   loading={cargando}
 />
-<Dialog open={openDetalle} onClose={cerrarDetalle} maxWidth="sm" fullWidth>
+<Dialog open={openDetalle} onClose={cerrarDetalle} maxWidth="sm" fullWidth transitionDuration={{ appear: 120, enter: 120, exit: 90 }}>
   <DialogTitle sx={{ pr: 8, py: 1.5 }}>
   <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 4 }}>
     <Typography variant="h6" fontWeight={700}>
@@ -495,13 +512,13 @@ const renderEllipsis = (text) => (
     </Typography>
 
     <Chip
-      label={filaSel?.EstNom || "-"}
-      sx={{
-        bgcolor: alpha(colorEstado(filaSel?.EstNom || ""), 0.12),
-        color: colorEstado(filaSel?.EstNom || ""),
-        fontWeight: 700,
-      }}
-    />
+  label={filaSel?.EstNom || "-"}
+  sx={{
+    bgcolor: alpha(estadoColor(filaSel?.EstNom || ""), 0.12),
+    color:   estadoColor(filaSel?.EstNom || ""),
+    fontWeight: 700,
+  }}
+/>
   </Box>
 
   <IconButton
@@ -580,12 +597,17 @@ const renderEllipsis = (text) => (
     <Typography variant="body2"><b>Contabilidad</b></Typography>
     {chipSemaforo(filaSel?.EstCont)}
   </Stack>
+
+  <Stack direction="row" spacing={1} alignItems="center">
+    <Typography variant="body2"><b>Becas</b></Typography>
+    {chipSemaforo(filaSel?.BecNom)}
+  </Stack>
+
 </Stack>
 
     <Divider />
 
-    <Grid container spacing={2}>
-     
+    <Grid container spacing={2}>   
       
 
       <Grid item xs={12}>
