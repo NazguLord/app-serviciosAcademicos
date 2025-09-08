@@ -36,3 +36,31 @@ export async function denegarSolicitud(payload) {
   }
   return json; // { status: "OK" | "ER", payload: {...} }
 }
+
+/**
+ * Obtiene el historial de acciones (timeline) por DocCod
+ * Devuelve SIEMPRE un array (normalizado), o [] si hay error/vacío
+ */
+export async function obtenerHistorialAcciones(docCod) {
+  if (!docCod) return [];
+  try {
+    const { data } = await axios.get(
+      `${API_BASE}asolicitud_documentos/obtener_log2.php`,
+      { params: { DocCod: docCod } }
+    );
+
+    // Tu shape exacto:
+    // { total, pagenum, pagesize, data: [ { LogCod, DocCod, UsrUsr, LogDsc, LogFch } ] }
+    const rows = Array.isArray(data?.data) ? data.data : [];
+    return rows.map((r) => ({
+      fecha: r.LogFch || "",
+      accion: r.LogDsc || "",
+      usuario: r.UsrUsr || "",
+      docCod: r.DocCod || "",
+      raw: r,
+    }));
+  } catch (err) {
+    console.error("Error al obtener historial:", err);
+    return [];
+  }
+}

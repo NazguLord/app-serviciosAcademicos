@@ -60,7 +60,7 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
   const puedeDenegar = String(s?.EstNom || "").toLowerCase().startsWith("pendient");
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth transitionDuration={{ appear: 120, enter: 120, exit: 90 }}>
+    <Dialog open={open}  onClose={() => {document.activeElement?.blur(); onClose?.() }} maxWidth="sm" fullWidth transitionDuration={{ appear: 120, enter: 120, exit: 90 }} disableEnforceFocus >
       <DialogTitle sx={{ pr: 8, py: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 4 }}>
           <Typography variant="h6" fontWeight={700}>Detalle de solicitud</Typography>
@@ -162,19 +162,25 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
       </DialogActions>
 
       {/* Modal de confirmación y observación */}
+      {openDenegar && (
     <ModalDenegarSolicitud
-     open={openDenegar}
-     onClose={() => setOpenDenegar(false)}
-     onConfirm={async  (observacion) => {
-     // 1) cerrar modales YA
-     setOpenDenegar(false);
-     onClose?.();
-     // 2) disparar la petición en el siguiente tick
-     setTimeout(() => {
-       onDenegar?.(s, observacion); // handleDenegar muestra el loader y el éxito/error
-     }, 0);
-   }}
- />
+  open={openDenegar}
+  onClose={() => { document.activeElement?.blur(); setOpenDenegar(false)}}
+  onConfirm={async (observacion) => {
+    // ✅ 1) Quitar el foco del botón activo para evitar el warning
+    document.activeElement?.blur();
+
+    // ✅ 2) Cerrar los modales inmediatamente
+    setOpenDenegar(false);
+    onClose?.();
+
+    // ✅ 3) Disparar la acción después
+    setTimeout(() => {
+      onDenegar?.(s, observacion); // handleDenegar muestra el loader y el éxito/error
+    }, 0);
+  }}
+/>
+)}
 </Dialog>
   );
 }

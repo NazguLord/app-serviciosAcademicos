@@ -1,9 +1,10 @@
 // ModalDenegarSolicitud.jsx
-import React from "react";
+import { useEffect } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Typography, TextField, Button
+  Typography, TextField, Button, CircularProgress
 } from "@mui/material";
+
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 
@@ -18,11 +19,23 @@ const schema = Yup.object({
 export default function ModalDenegarSolicitud({
   open,
   onClose,
-  onConfirm,          // (values) => Promise | void  (devolver promesa si harás fetch)
+  onConfirm,          // (values) => Promise | void
   titulo = "Denegar documento",
 }) {
+
+  // ✅ Este es el lugar correcto para useEffect
+  useEffect(() => {
+    return () => {
+      console.log("🧹 ModalDenegarSolicitud desmontado");
+    console.log("Elemento activo:", document.activeElement);
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    };
+  }, []);
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth disableEnforceFocus>
       <DialogTitle>{titulo}</DialogTitle>
 
       <Formik
@@ -30,7 +43,8 @@ export default function ModalDenegarSolicitud({
         validationSchema={schema}
         onSubmit={async (values, helpers) => {
           try {
-             await onConfirm?.(values.observacion); 
+            document.activeElement?.blur();
+            await onConfirm?.(values.observacion);
           } finally {
             helpers.setSubmitting(false);
           }
@@ -68,9 +82,10 @@ export default function ModalDenegarSolicitud({
                 type="submit"
                 variant="contained"
                 color="error"
-                loading={isSubmitting}
+                disabled={isSubmitting}
+                startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : null}
               >
-                Guardar
+                {isSubmitting ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogActions>
           </Form>
