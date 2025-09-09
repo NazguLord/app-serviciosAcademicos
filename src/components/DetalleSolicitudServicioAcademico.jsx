@@ -2,13 +2,17 @@
 import React, { useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Typography, Chip, Stack, Grid, Divider, IconButton, Button 
+  Box, Typography, Chip, Stack, Grid, Divider, IconButton, Button, DialogContentText 
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import ModalDenegarSolicitud from "../components/ModalDenegarSolicitud";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import CloseIcon from "@mui/icons-material/Close";
+import HistorialTimeline from "../components/HistorialTimeline";
+import ModalAutorizarPago from "../components/ModalPagoDocumento";
 
 /* ---------- helpers SOLO del modal ---------- */
 const formatFechaSoloDia = (input) => {
@@ -54,10 +58,13 @@ const ChipSemaforo = ({ valor }) => {
 export default function DetalleSolicitudServicioAcademico({ open, solicitud, onClose, onDenegar }) {
   const theme = useTheme();
   const [openDenegar, setOpenDenegar] = useState(false);
+  const [openHist, setOpenHist] = useState(false);
+  const [openAutorizar, setOpenAutorizar] = useState(false);
   const s = solicitud;
   if (!s) return null;
   
   const puedeDenegar = String(s?.EstNom || "").toLowerCase().startsWith("pendient");
+  const puedeAutorizar = String(s?.EstNom || "").toLowerCase() === "pendiente";
 
   return (
     <Dialog open={open}  onClose={() => {document.activeElement?.blur(); onClose?.() }} maxWidth="sm" fullWidth transitionDuration={{ appear: 120, enter: 120, exit: 90 }} disableEnforceFocus >
@@ -153,12 +160,79 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
 
       <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
         <Box sx={{ flex: 1 }} />
+        <Button
+        sx={{
+    borderColor: (theme) =>
+      theme.palette.mode === "dark"
+        ? theme.palette.common.white
+        : theme.palette.grey[400],
+    color: (theme) =>
+      theme.palette.mode === "dark"
+        ? theme.palette.common.white
+        : theme.palette.text.primary,
+    "&:hover": {
+      borderColor: (theme) =>
+        theme.palette.mode === "dark"
+          ? theme.palette.primary.main
+          : theme.palette.text.primary,
+      bgcolor: (theme) =>
+        theme.palette.mode === "dark"
+          ? "rgba(255,255,255,0.08)"
+          : "rgba(0,0,0,0.04)",
+    },
+  }}
+          variant="outlined"
+          startIcon={<TimelineIcon />}
+          onClick={() => setOpenHist(true)}
+        >
+          Ver historial
+        </Button>
+        {/* ✅ nuevo botón para autorizar */}
+        {puedeAutorizar && (
+          <Button
+            variant="outlined"
+            color="success"
+            onClick={() => setOpenAutorizar(true)}
+            sx={(theme) => ({
+      color: theme.palette.success.main,
+      borderColor: theme.palette.success.main,
+      "&:hover": {
+        borderColor: theme.palette.success.dark,
+        bgcolor: theme.palette.mode === "dark"
+          ? "rgba(46, 125, 50, 0.12)" // ~ success.main con alpha
+          : "rgba(46, 125, 50, 0.04)",
+      },
+      fontWeight: 700,
+    })}
+          >
+            Autorizar
+          </Button>
+        )}
         {puedeDenegar && (
           <Button variant="outlined" color="error" onClick={() => setOpenDenegar(true)}>
             Denegar
           </Button>
         )}
-        <Button onClick={onClose}>Cerrar</Button>
+        <Button sx={{
+    borderColor: (theme) =>
+      theme.palette.mode === "dark"
+        ? theme.palette.common.white
+        : theme.palette.grey[400],
+    color: (theme) =>
+      theme.palette.mode === "dark"
+        ? theme.palette.common.white
+        : theme.palette.text.primary,
+    "&:hover": {
+      borderColor: (theme) =>
+        theme.palette.mode === "dark"
+          ? theme.palette.primary.main
+          : theme.palette.text.primary,
+      bgcolor: (theme) =>
+        theme.palette.mode === "dark"
+          ? "rgba(255,255,255,0.08)"
+          : "rgba(0,0,0,0.04)",
+    },
+  }}onClick={onClose}>Cerrar</Button>
       </DialogActions>
 
       {/* Modal de confirmación y observación */}
@@ -181,6 +255,76 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
   }}
 />
 )}
+
+{/* ✅ Modal Autorizar */}
+      {openAutorizar && (
+        <ModalAutorizarPago
+          open={openAutorizar}
+          solicitud={s}
+          onClose={() => { document.activeElement?.blur(); setOpenAutorizar(false); }}
+          onSubmit={(values) => {
+            console.log("Valores enviados:", values);
+            // TODO: aquí llamas a tu endpoint cuando lo tengas
+            // await axios.post("/api/autorizarPago", { ...values, idSolicitud: s.DocCod })
+          }}
+        />
+      )}
+
+{/* Dialog del Historial */}
+      <Dialog
+        open={openHist}
+        onClose={() => { document.activeElement?.blur(); setTimeout(() => setOpenHist(false), 0); }}
+        fullWidth
+        maxWidth="md"
+        disableRestoreFocus
+      >
+        <DialogTitle
+  sx={{
+    textAlign: "center",
+    fontWeight: 700,
+    fontSize: "1.25rem", // más grande que el default
+     color: (theme) =>
+      theme.palette.mode === "dark"
+        ? theme.palette.common.white
+        : theme.palette.primary.main,
+    position: "relative",
+    borderBottom: "1px solid",
+    borderColor: (theme) => theme.palette.divider,
+    py: 1.5,
+  }}
+>
+  Historial de acciones
+  <IconButton
+    onMouseDown={(e) => e.preventDefault()}
+    aria-label="Cerrar"
+    onClick={() => setOpenHist(false)}
+    sx={{
+      position: "absolute",
+      right: 8,
+      top: 8,
+      color: (theme) =>
+        theme.palette.mode === "dark"
+          ? theme.palette.grey[300]
+          : theme.palette.grey[500],
+      "&:hover": {
+        color: (theme) => theme.palette.error.main,
+      },
+    }}
+  >
+    <CloseIcon />
+  </IconButton>
+</DialogTitle>
+        <DialogContent dividers>
+          {s?.DocCod ? (
+            <HistorialTimeline docCod={s.DocCod} height={420} />
+          ) : (
+            <DialogContentText>
+              No se encontró el DocCod de esta solicitud.
+            </DialogContentText>
+          )}
+        </DialogContent>
+      </Dialog>
+
 </Dialog>
   );
 }

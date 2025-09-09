@@ -98,17 +98,17 @@ function Home() {
       setCargando(true);
 
       Swal.fire({
-  title: 'Denegando...',
-  text: 'Por favor espera',
-  allowOutsideClick: false,
-  allowEscapeKey: false,
-  didOpen: () => {
+   title: 'Denegando...',
+   text: 'Por favor espera',
+   allowOutsideClick: false,
+   allowEscapeKey: false,
+   didOpen: () => {
     // 👇 Esto soluciona el warning de focus con aria-hidden
     document.activeElement?.blur();
     console.log("💡 blur antes del cambio");
     Swal.showLoading();
-  },
-  willClose: () => {
+   },
+   willClose: () => {
     // 👇 Limpieza extra por si quedó algo en root
     const root = document.getElementById('root');
     root?.removeAttribute('aria-hidden');
