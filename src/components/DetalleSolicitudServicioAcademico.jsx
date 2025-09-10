@@ -205,7 +205,7 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
       fontWeight: 700,
     })}
           >
-            Autorizar
+            Autorizar Pago
           </Button>
         )}
         {puedeDenegar && (

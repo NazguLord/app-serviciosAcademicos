@@ -137,7 +137,7 @@ export default function HistorialTimeline({ docCod, height = 420 }) {
 
   return (
     <Box sx={{ width: "100%", maxWidth: 1000, mx: "auto" }}>
-      <Typography variant="h6" sx={{ mb: 1 }}>Linea de tiempo del movimiento del documento</Typography>
+      <Typography variant="h6" sx={{ mb: 1 }}>Línea de tiempo del movimiento del documento</Typography>
       <Box id="historial-scroll" sx={{ height, overflowY: "auto", pr: 1 }}>{contenido}</Box>
     </Box>
   );

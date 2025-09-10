@@ -97,8 +97,8 @@ const ModalPagoDocumento = ({ open, onClose, onSubmit, solicitud }) => {
                 </Button>
                 <Button
                   type="submit"
-                  variant="outlined"
-                  color="primary"
+                  variant="contained"
+                  color="success"
                   disabled={isSubmitting}
                 >
                   Guardar
