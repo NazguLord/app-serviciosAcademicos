@@ -1,10 +1,20 @@
 // src/components/ModalPagoDocumento.jsx
-import React from "react";
-import {  Dialog,  DialogTitle,  DialogContent,  DialogActions,  TextField,  Button,  Typography,  Box,
+import React, { useEffect } from "react";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  CircularProgress,
 } from "@mui/material";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import { autorizarSolicitud } from "../api/solicitudesApi"; 
+import Swal from "sweetalert2"; // 👈 importamos SweetAlert
+import { autorizarSolicitud } from "../api/solicitudesApi";
 
 const validationSchema = Yup.object({
   paginas: Yup.number()
@@ -17,66 +27,94 @@ const validationSchema = Yup.object({
     .integer("Debe ser un número entero"),
 });
 
-const ModalPagoDocumento = ({ open, onClose, onSubmit, solicitud }) => {
+export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud }) {
+  useEffect(() => {
+    return () => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    };
+  }, []);
+
   const handleClose = () => {
-    // Evita warning de focus
     document.activeElement?.blur();
     onClose();
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-    >
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth disableEnforceFocus>
       <DialogTitle sx={{ fontWeight: "bold", color: "primary.main" }}>
         Autorizar documento
       </DialogTitle>
 
-      <DialogContent dividers>
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          ¿Está seguro que desea autorizar la solicitud de documento? <br />
-          <strong>
-            (EL SOLICITANTE NO ESTÁ SOLVENTE EN UNO O MÁS DEPARTAMENTOS).
-          </strong>
-        </Typography>
+      <Formik
+        initialValues={{
+          paginas: solicitud?.DocPages || "",
+          valor: solicitud?.DocVal || "",
+        }}
+        validationSchema={validationSchema}
+        onSubmit={async (values, helpers) => {
+          try {
+            document.activeElement?.blur();
 
-        <Formik
-          initialValues={{
-            paginas: "",
-            valor: solicitud?.valor || "",
-          }}
-          validationSchema={validationSchema}
-          onSubmit={async (values, { setSubmitting }) => {
-            try {
-              const payload = {
-                DocCod: solicitud.DocCod,   // 👈 obligatorio
-                DocPages: values.paginas,
-                DocVal: values.valor,
-                estadoreg: solicitud.estadoreg ?? "",
-                estadocont: solicitud.estadocont ?? "",
-                estadocond: solicitud.estadocond ?? "",
-              };
+            const payload = {
+              DocCod: solicitud.DocCod,
+              DocPages: values.paginas,
+              DocVal: values.valor,
+              estadoreg: solicitud.estadoreg ?? "",
+              estadocont: solicitud.estadocont ?? "",
+              estadocond: solicitud.estadocond ?? "",
+            };
 
-              const resp = await autorizarSolicitud(payload);
-              if (resp?.status === "OK") {
-                onSubmit?.(); // refresca grilla o muestra mensaje
-                handleClose();
-              } else {
-                alert(resp?.payload?.message || "Error al autorizar");
-              }
-            } catch (err) {
-              console.error("Error al autorizar:", err);
-              alert("Ocurrió un error al autorizar.");
-            } finally {
-              setSubmitting(false);
+            // 🔹 Loader con SweetAlert
+            Swal.fire({
+              title: "Autorizando...",
+              text: "Por favor espere",
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              didOpen: () => Swal.showLoading(),
+            });
+
+            const resp = await autorizarSolicitud(payload);
+
+            if (resp?.status === "OK") {
+              Swal.fire({
+                icon: "success",
+                title: "Éxito",
+                text: "El documento fue autorizado correctamente",
+                timer: 2000,
+                showConfirmButton: false,
+              });
+
+              onSubmit?.(); // refrescar grilla en el padre
+              handleClose();
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: resp?.payload?.message || "No se pudo autorizar",
+              });
             }
-          }}
-        >
-          {({ values, errors, touched, handleChange, isSubmitting }) => (
-            <Form>
+          } catch (err) {
+            console.error("Error al autorizar:", err);
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: "Ocurrió un error al autorizar",
+            });
+          } finally {
+            helpers.setSubmitting(false);
+          }
+        }}
+      >
+        {({ values, errors, touched, handleChange, isSubmitting }) => (
+          <Form>
+            <DialogContent dividers>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                ¿Está seguro que desea autorizar la solicitud de documento? <br />
+                <strong>(EL SOLICITANTE NO ESTÁ SOLVENTE EN UNO O MÁS DEPARTAMENTOS).</strong>
+              </Typography>
+
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 <TextField
                   label="Páginas del documento"
@@ -100,26 +138,23 @@ const ModalPagoDocumento = ({ open, onClose, onSubmit, solicitud }) => {
                   type="number"
                 />
               </Box>
+            </DialogContent>
 
-              <DialogActions sx={{ mt: 3 }}>
-                <Button onClick={handleClose} variant="outlined" color="inherit">
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="success"
-                  disabled={isSubmitting}
-                >
-                  Guardar
-                </Button>
-              </DialogActions>
-            </Form>
-          )}
-        </Formik>
-      </DialogContent>
+            <DialogActions>
+              <Button onClick={handleClose}>Cancelar</Button>
+              <Button
+                type="submit"
+                variant="contained"
+                color="success"
+                disabled={isSubmitting}
+                startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : null}
+              >
+                {isSubmitting ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogActions>
+          </Form>
+        )}
+      </Formik>
     </Dialog>
   );
-};
-
-export default ModalPagoDocumento;
+}

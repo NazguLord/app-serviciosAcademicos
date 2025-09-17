@@ -55,7 +55,7 @@ const ChipSemaforo = ({ valor }) => {
 };
 
 /* ---------- componente ---------- */
-export default function DetalleSolicitudServicioAcademico({ open, solicitud, onClose, onDenegar }) {
+export default function DetalleSolicitudServicioAcademico({ open, solicitud, onClose, onDenegar, onUpdate }) {
   const theme = useTheme();
   const [openDenegar, setOpenDenegar] = useState(false);
   const [openHist, setOpenHist] = useState(false);
@@ -257,18 +257,16 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
 )}
 
 {/* ✅ Modal Autorizar */}
-      {openAutorizar && (
-        <ModalAutorizarPago
-          open={openAutorizar}
-          solicitud={s}
-          onClose={() => { document.activeElement?.blur(); setOpenAutorizar(false); }}
-          onSubmit={(values) => {
-            console.log("Valores enviados:", values);
-            // TODO: aquí llamas a tu endpoint cuando lo tengas
-            // await axios.post("/api/autorizarPago", { ...values, idSolicitud: s.DocCod })
-          }}
-        />
-      )}
+   <ModalAutorizarPago
+  open={openAutorizar}
+  solicitud={s}
+  onClose={() => { 
+    document.activeElement?.blur(); 
+    setOpenAutorizar(false); 
+    onClose?.(); // cerrar también el modal principal
+  }}
+  onSubmit={onUpdate} // 👈 ahora usa la función pasada desde Home.jsx
+/>
 
 {/* Dialog del Historial */}
       <Dialog

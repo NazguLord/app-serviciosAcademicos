@@ -67,9 +67,17 @@ function Home() {
   const [busqueda, setBusqueda] = useState("");
   const [listaCampus, setListaCampus] = useState([]);
   const [cargando, setCargando] = useState(false);
- 
 
   const estadoActual = estados[estadoTab].value;
+
+  // ✅ función reutilizable para cargar solicitudes
+  const cargarSolicitudes = async () => {
+    if (!campusSeleccionado) return;
+    setCargando(true);
+    const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
+    setSolicitudes(mapearSolicitudes(data));
+    setCargando(false);
+  };
 
   useEffect(() => {
     const cargarCampus = async () => {
@@ -80,14 +88,8 @@ function Home() {
     cargarCampus();
   }, []);
 
+  // ✅ ahora usamos la función reutilizable
   useEffect(() => {
-    const cargarSolicitudes = async () => {
-      if (!campusSeleccionado) return;
-      setCargando(true);
-      const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
-      setSolicitudes(mapearSolicitudes(data));
-      setCargando(false);
-    };
     cargarSolicitudes();
   }, [campusSeleccionado, estadoTab]);
 
@@ -98,22 +100,19 @@ function Home() {
       setCargando(true);
 
       Swal.fire({
-   title: 'Denegando...',
-   text: 'Por favor espera',
-   allowOutsideClick: false,
-   allowEscapeKey: false,
-   didOpen: () => {
-    // 👇 Esto soluciona el warning de focus con aria-hidden
-    document.activeElement?.blur();
-    console.log("💡 blur antes del cambio");
-    Swal.showLoading();
-   },
-   willClose: () => {
-    // 👇 Limpieza extra por si quedó algo en root
-    const root = document.getElementById('root');
-    root?.removeAttribute('aria-hidden');
-  }
-});
+        title: 'Denegando...',
+        text: 'Por favor espera',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          document.activeElement?.blur();
+          Swal.showLoading();
+        },
+        willClose: () => {
+          const root = document.getElementById('root');
+          root?.removeAttribute('aria-hidden');
+        }
+      });
 
       const r = await denegarSolicitud({
         DocCod: row.DocCod,
@@ -127,12 +126,8 @@ function Home() {
         throw new Error(r?.payload?.message || 'No se pudo denegar');
       }
 
-      if (estadoActual === 'Pendientes' || estadoActual === 'Proceso') {
-        setSolicitudes(prev => prev.filter(s => s.DocCod !== row.DocCod));
-      }
-
-      const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
-      setSolicitudes(mapearSolicitudes(data));
+      // 🔁 refrescamos siempre desde la función central
+      await cargarSolicitudes();
 
       await Swal.fire({
         icon: 'success',
@@ -154,37 +149,15 @@ function Home() {
   };
 
   const handleTabChange = (event, newValue) => {
-  // Quitar foco antes de cualquier cambio
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur();
-    console.log("🧼 blur antes del cambio");
-  }
-
-  // Cambiar pestaña
-  setEstadoTab(newValue);
-  setOpenDetalle(false); // cerrar modal si aplica
-};
-
-useEffect(() => {
-  // 🔁 Refuerza el blur justo después de montar la nueva pestaña
-  document.activeElement?.blur();
-}, [estadoTab]);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setEstadoTab(newValue);
+    setOpenDetalle(false);
+  };
 
   const [openDetalle, setOpenDetalle] = useState(false);
   const [filaSel, setFilaSel] = useState(null);
-
-  useEffect(() => {
-  const root = document.getElementById('root');
-  if (openDetalle) {
-    root?.setAttribute('inert', '');
-    console.log("🔕 Fondo inhabilitado con [inert]");
-  } else {
-    root?.removeAttribute('inert');
-    console.log("🟢 Fondo reactivado");
-  }
-
-  return () => root?.removeAttribute('inert'); // limpieza por seguridad
-}, [openDetalle]);
 
   const abrirDetalle = (row, e) => {
     e?.currentTarget?.blur?.();
@@ -194,7 +167,7 @@ useEffect(() => {
   const cerrarDetalle = () => setOpenDetalle(false);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, width: "100%", px: 2, py: 3, boxSizing: "border-box" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", flex: 1, width: "100%", px: 2, py: 3 }}>
       {/* Título */}
       <Box sx={{ textAlign: "center", mb: 4, mt: 1 }}>
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 1 }}>
@@ -226,9 +199,6 @@ useEffect(() => {
             background: isDark
               ? "linear-gradient(90deg, #1976d2, #42a5f5)"
               : "linear-gradient(90deg, #0d47a1, #64b5f6)",
-            boxShadow: isDark
-              ? "0 0 8px rgba(66,165,245,0.6)"
-              : "0 0 4px rgba(66,165,245,0.3)",
           }}
         />
       </Box>
@@ -261,7 +231,7 @@ useEffect(() => {
 
       {/* Tabs */}
       <Paper elevation={2} sx={{ maxWidth: 500, width: "100%", mx: "auto", borderRadius: 2, mb: 2 }}>
-        <Tabs value={estadoTab} onChange={handleTabChange}  selectionFollowsFocus={false} centered textColor="primary" indicatorColor="primary">
+        <Tabs value={estadoTab} onChange={handleTabChange} centered textColor="primary" indicatorColor="primary">
           <Tab label="PENDIENTES" sx={{ color: theme.palette.warning.light }} />
           <Tab label="PROCESO" sx={{ color: theme.palette.warning.dark }} />
           <Tab label="COMPLETADOS" sx={{ color: theme.palette.success.main }} />
@@ -269,7 +239,7 @@ useEffect(() => {
         </Tabs>
       </Paper>
 
-      {/* DataGrid mediante componente */}
+      {/* DataGrid */}
       <TablaSolicitudes
         solicitudes={solicitudes}
         busqueda={busqueda}
@@ -283,6 +253,7 @@ useEffect(() => {
         solicitud={filaSel}
         onClose={cerrarDetalle}
         onDenegar={handleDenegar}
+        onUpdate={cargarSolicitudes} // 👈 aquí pasa la función
       />
     </Box>
   );
