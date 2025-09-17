@@ -1,17 +1,10 @@
 // src/components/ModalPagoDocumento.jsx
 import React from "react";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Typography,
-  Box,
+import {  Dialog,  DialogTitle,  DialogContent,  DialogActions,  TextField,  Button,  Typography,  Box,
 } from "@mui/material";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
+import { autorizarSolicitud } from "../api/solicitudesApi"; 
 
 const validationSchema = Yup.object({
   paginas: Yup.number()
@@ -20,7 +13,8 @@ const validationSchema = Yup.object({
     .integer("Debe ser un número entero"),
   valor: Yup.number()
     .required("El valor es requerido")
-    .min(1, "Debe ser mayor a 0"),
+    .min(1, "Debe ser mayor a 0")
+    .integer("Debe ser un número entero"),
 });
 
 const ModalPagoDocumento = ({ open, onClose, onSubmit, solicitud }) => {
@@ -55,14 +49,30 @@ const ModalPagoDocumento = ({ open, onClose, onSubmit, solicitud }) => {
             valor: solicitud?.valor || "",
           }}
           validationSchema={validationSchema}
-          onSubmit={(values, { setSubmitting, resetForm }) => {
-            // Aquí va tu lógica de backend (cuando tengas el endpoint)
-            // Ejemplo: await axios.post("/api/autorizarPago", { ...values, idSolicitud: solicitud.id })
-            onSubmit(values);
+          onSubmit={async (values, { setSubmitting }) => {
+            try {
+              const payload = {
+                DocCod: solicitud.DocCod,   // 👈 obligatorio
+                DocPages: values.paginas,
+                DocVal: values.valor,
+                estadoreg: solicitud.estadoreg ?? "",
+                estadocont: solicitud.estadocont ?? "",
+                estadocond: solicitud.estadocond ?? "",
+              };
 
-            setSubmitting(false);
-            resetForm();
-            handleClose();
+              const resp = await autorizarSolicitud(payload);
+              if (resp?.status === "OK") {
+                onSubmit?.(); // refresca grilla o muestra mensaje
+                handleClose();
+              } else {
+                alert(resp?.payload?.message || "Error al autorizar");
+              }
+            } catch (err) {
+              console.error("Error al autorizar:", err);
+              alert("Ocurrió un error al autorizar.");
+            } finally {
+              setSubmitting(false);
+            }
           }}
         >
           {({ values, errors, touched, handleChange, isSubmitting }) => (

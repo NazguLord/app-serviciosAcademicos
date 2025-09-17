@@ -64,3 +64,20 @@ export async function obtenerHistorialAcciones(docCod) {
     return [];
   }
 }
+
+export async function autorizarSolicitud(payload) {
+  // El endpoint espera form-urlencoded
+  const body = new URLSearchParams();
+  Object.entries(payload).forEach(([k, v]) => body.append(k, v ?? ""));
+
+  const res = await fetch(`${API_BASE}asolicitud_documentos/autorizar2.php`, {
+    method: "POST",
+    body, // application/x-www-form-urlencoded automáticamente
+  });
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json) {
+    throw new Error("No se pudo autorizar");
+  }
+  return json; // { status: "OK" | "ER", payload: {...} }
+}

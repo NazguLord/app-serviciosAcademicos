@@ -37,7 +37,17 @@ function App() {
               <Box sx={{ flexGrow: 1, p: 2 }}>
                 <Container maxWidth="xl">
                   <Routes>
-                    <Route path="/" element={<Home />} />
+                    <Route
+  path="/"
+  element={
+    <ProtectedRoute
+      element={<Home />}
+     // roles={['1']}
+     // campus={['99']}
+     // requireAll={['CORE.CORE000']}
+    />
+  }
+/>
                     <Route path="/prueba" element={<Prueba />} />
 
                     {/* ejemplos protegidos */}
