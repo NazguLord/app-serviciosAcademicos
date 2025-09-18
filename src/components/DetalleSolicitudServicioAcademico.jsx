@@ -257,16 +257,28 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
 )}
 
 {/* ✅ Modal Autorizar */}
-   <ModalAutorizarPago
-  open={openAutorizar}
-  solicitud={s}
-  onClose={() => { 
-    document.activeElement?.blur(); 
-    setOpenAutorizar(false); 
-    onClose?.(); // cerrar también el modal principal
-  }}
-  onSubmit={onUpdate} // 👈 ahora usa la función pasada desde Home.jsx
-/>
+   {openAutorizar && (
+  <ModalAutorizarPago
+    open={openAutorizar}
+    solicitud={s}
+    onClose={() => {
+      document.activeElement?.blur();
+      setOpenAutorizar(false);
+      onClose?.(); // cerrar también el modal principal
+    }}
+    onSubmit={async () => {
+      // 1️⃣ Cierra ambos modales de inmediato
+      setOpenAutorizar(false);
+      onClose?.();
+
+      // 2️⃣ Refresca la grilla DESPUÉS de que los modales se desmonten
+      setTimeout(async () => {
+        await onUpdate?.(); // 👈 Home.jsx refresca con obtenerSolicitudes
+      }, 0);
+    }}
+  />
+)}
+
 
 {/* Dialog del Historial */}
       <Dialog

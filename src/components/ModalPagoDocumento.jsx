@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import Swal from "sweetalert2"; // 👈 importamos SweetAlert
+import Swal from "sweetalert2";
 import { autorizarSolicitud } from "../api/solicitudesApi";
 
 const validationSchema = Yup.object({
@@ -42,7 +42,14 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth disableEnforceFocus>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+      disableEnforceFocus
+      disableRestoreFocus
+    >
       <DialogTitle sx={{ fontWeight: "bold", color: "primary.main" }}>
         Autorizar documento
       </DialogTitle>
@@ -66,35 +73,44 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
               estadocond: solicitud.estadocond ?? "",
             };
 
-            // 🔹 Loader con SweetAlert
-            Swal.fire({
-              title: "Autorizando...",
-              text: "Por favor espere",
-              allowOutsideClick: false,
-              allowEscapeKey: false,
-              didOpen: () => Swal.showLoading(),
-            });
+            // 🔹 Cerramos primero el modal
+            handleClose();
 
-            const resp = await autorizarSolicitud(payload);
-
-            if (resp?.status === "OK") {
+            // 🔹 Luego abrimos Swal en el siguiente tick
+            setTimeout(async () => {
               Swal.fire({
-                icon: "success",
-                title: "Éxito",
-                text: "El documento fue autorizado correctamente",
-                timer: 2000,
-                showConfirmButton: false,
+                title: "Autorizando...",
+                text: "Por favor espere",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading(),
+                willClose: () => {
+                  document.activeElement?.blur();
+                  const root = document.getElementById("root");
+                  root?.removeAttribute("aria-hidden");
+                },
               });
 
-              onSubmit?.(); // refrescar grilla en el padre
-              handleClose();
-            } else {
-              Swal.fire({
-                icon: "error",
-                title: "Error",
-                text: resp?.payload?.message || "No se pudo autorizar",
-              });
-            }
+              const resp = await autorizarSolicitud(payload);
+
+              if (resp?.status === "OK") {
+                Swal.fire({
+                  icon: "success",
+                  title: "Éxito",
+                  text: "El documento fue autorizado correctamente",
+                  timer: 2000,
+                  showConfirmButton: false,
+                });
+
+                onSubmit?.(); // refrescar grilla
+              } else {
+                Swal.fire({
+                  icon: "error",
+                  title: "Error",
+                  text: resp?.payload?.message || "No se pudo autorizar",
+                });
+              }
+            }, 0);
           } catch (err) {
             console.error("Error al autorizar:", err);
             Swal.fire({
@@ -112,7 +128,9 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
             <DialogContent dividers>
               <Typography variant="body2" sx={{ mb: 2 }}>
                 ¿Está seguro que desea autorizar la solicitud de documento? <br />
-                <strong>(EL SOLICITANTE NO ESTÁ SOLVENTE EN UNO O MÁS DEPARTAMENTOS).</strong>
+                <strong>
+                  (EL SOLICITANTE NO ESTÁ SOLVENTE EN UNO O MÁS DEPARTAMENTOS).
+                </strong>
               </Typography>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -147,7 +165,9 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
                 variant="contained"
                 color="success"
                 disabled={isSubmitting}
-                startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : null}
+                startIcon={
+                  isSubmitting ? <CircularProgress size={20} color="inherit" /> : null
+                }
               >
                 {isSubmitting ? "Guardando..." : "Guardar"}
               </Button>
