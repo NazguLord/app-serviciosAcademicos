@@ -31,7 +31,7 @@ const estadoColorLocal = (theme, nombre = "") => {
   return theme.palette.text.secondary;
 };
 
-const ChipSemaforo = ({ valor }) => {
+const ChipSemaforo = React.memo(function ChipSemaforo({ valor }) {
   const theme = useTheme();
   const v = String(valor ?? "").trim().toUpperCase();
   const ok  = v === "OK";
@@ -41,7 +41,6 @@ const ChipSemaforo = ({ valor }) => {
     : pdt
     ? theme.palette.error.main
     : theme.palette.text.secondary;
-    
 
   return (
     <Chip
@@ -52,7 +51,7 @@ const ChipSemaforo = ({ valor }) => {
       sx={{ color, borderColor: color, fontWeight: 700, height: 28 }}
     />
   );
-};
+});
 
 /* ---------- componente ---------- */
 export default function DetalleSolicitudServicioAcademico({ open, solicitud, onClose, onDenegar, onUpdate }) {
@@ -67,7 +66,7 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
   const puedeAutorizar = String(s?.EstNom || "").toLowerCase() === "pendiente";
 
   return (
-    <Dialog open={open}  onClose={() => {document.activeElement?.blur(); onClose?.() }} maxWidth="sm" fullWidth transitionDuration={{ appear: 120, enter: 120, exit: 90 }} disableEnforceFocus >
+    <Dialog open={open}  onClose={() => {document.activeElement?.blur(); onClose?.() }} maxWidth="sm" fullWidth keepMounted transitionDuration={{ appear: 120, enter: 120, exit: 90 }} disableEnforceFocus >
       <DialogTitle sx={{ pr: 8, py: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 4 }}>
           <Typography variant="h6" fontWeight={700}>Detalle de solicitud</Typography>

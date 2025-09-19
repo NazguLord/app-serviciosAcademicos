@@ -14,6 +14,7 @@ import { obtenerSolicitudes, denegarSolicitud } from "../api/solicitudesApi";
 import { AppContext } from "../context/AppContext";
 import DetalleSolicitudServicioAcademico from "../components/DetalleSolicitudServicioAcademico";
 import TablaSolicitudes from "../components/TablaSolicitudes"; // ✅ nuevo componente
+import ExportButtons from "../components/ExportButtons";
 
 const estados = [
   { label: "Pendientes", value: "Pendientes" },
@@ -230,14 +231,21 @@ function Home() {
       </Box>
 
       {/* Tabs */}
-      <Paper elevation={2} sx={{ maxWidth: 500, width: "100%", mx: "auto", borderRadius: 2, mb: 2 }}>
+      <Paper elevation={2} sx={{ maxWidth: 500, width: "100%", mx: "auto", borderRadius: 2, mb: 2,  px: 2, py: 1, position: "relative"}}>
         <Tabs value={estadoTab} onChange={handleTabChange} centered textColor="primary" indicatorColor="primary">
           <Tab label="PENDIENTES" sx={{ color: theme.palette.warning.light }} />
           <Tab label="PROCESO" sx={{ color: theme.palette.warning.dark }} />
           <Tab label="COMPLETADOS" sx={{ color: theme.palette.success.main }} />
-          <Tab label="DENEGADOS" sx={{ color: theme.palette.error.main }} />
-        </Tabs>
+          <Tab label="DENEGADOS" sx={{ color: theme.palette.error.main }} />         
+        </Tabs>  
+        <Box sx={{ position: "absolute",  right: -90, top: "50%", transform: "translateY(-50%)", display: "flex",   alignItems: "center", gap: 1,}}>
+       <ExportButtons rows={solicitudes} fileName={`solicitudes-${estadoActual}`} 
+        campus={listaCampus.find(c => c.CamCod === campusSeleccionado)?.CamNomEsp || "Todos"} 
+        />
+      </Box>      
       </Paper>
+ 
+      
 
       {/* DataGrid */}
       <TablaSolicitudes

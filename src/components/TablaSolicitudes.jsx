@@ -1,5 +1,5 @@
 // src/components/TablaSolicitudes.jsx
-import React from "react";
+import React, { useMemo } from "react";
 import { Box, Tooltip, IconButton, alpha, useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import ManageSearchRoundedIcon from "@mui/icons-material/ManageSearchRounded";
@@ -115,11 +115,14 @@ const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => 
     },
   ];
 
-  const filteredRows = solicitudes.filter((row) =>
+  const filteredRows = useMemo(() => 
+  solicitudes.filter((row) =>
     Object.values(row).some(
       (value) => typeof value === "string" && value.toLowerCase().includes(busqueda)
     )
-  );
+  ),
+  [solicitudes, busqueda]
+);
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -168,4 +171,4 @@ const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => 
   );
 };
 
-export default TablaSolicitudes;
+export default React.memo(TablaSolicitudes);
