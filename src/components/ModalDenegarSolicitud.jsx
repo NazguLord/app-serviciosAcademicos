@@ -26,8 +26,8 @@ export default function ModalDenegarSolicitud({
   // ✅ Este es el lugar correcto para useEffect
   useEffect(() => {
     return () => {
-      console.log("🧹 ModalDenegarSolicitud desmontado");
-    console.log("Elemento activo:", document.activeElement);
+    //console.log("🧹 ModalDenegarSolicitud desmontado");
+    //console.log("Elemento activo:", document.activeElement);
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }

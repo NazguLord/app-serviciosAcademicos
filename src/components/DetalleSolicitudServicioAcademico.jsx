@@ -1,5 +1,5 @@
 // DetalleSolicitudServicioAcademico.jsx
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Typography, Chip, Stack, Grid, Divider, IconButton, Button, DialogContentText 
@@ -11,8 +11,9 @@ import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import ModalDenegarSolicitud from "../components/ModalDenegarSolicitud";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import CloseIcon from "@mui/icons-material/Close";
-import HistorialTimeline from "../components/HistorialTimeline";
 import ModalAutorizarPago from "../components/ModalPagoDocumento";
+
+const HistorialTimeline = lazy(() => import("../components/HistorialTimeline"));
 
 /* ---------- helpers SOLO del modal ---------- */
 const formatFechaSoloDia = (input) => {
@@ -65,8 +66,15 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
   const puedeDenegar = String(s?.EstNom || "").toLowerCase().startsWith("pendient");
   const puedeAutorizar = String(s?.EstNom || "").toLowerCase() === "pendiente";
 
+  const safeClose = () => {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+  setTimeout(() => onClose?.(), 0);
+};
+
   return (
-    <Dialog open={open}  onClose={() => {document.activeElement?.blur(); onClose?.() }} maxWidth="sm" fullWidth keepMounted transitionDuration={{ appear: 120, enter: 120, exit: 90 }} disableEnforceFocus >
+    <Dialog open={open}  onClose={safeClose}  maxWidth="sm" fullWidth keepMounted transitionDuration={{ appear: 120, enter: 120, exit: 90 }} disableEnforceFocus disableRestoreFocus>
       <DialogTitle sx={{ pr: 8, py: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 4 }}>
           <Typography variant="h6" fontWeight={700}>Detalle de solicitud</Typography>
@@ -79,7 +87,7 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
             }}
           />
         </Box>
-        <IconButton onClick={onClose} sx={{ position: "absolute", right: 8, top: 8 }} aria-label="Cerrar">
+        <IconButton onClick={safeClose} sx={{ position: "absolute", right: 8, top: 8 }} aria-label="Cerrar">
           <CloseRoundedIcon />
         </IconButton>
       </DialogTitle>
@@ -231,7 +239,7 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
           ? "rgba(255,255,255,0.08)"
           : "rgba(0,0,0,0.04)",
     },
-  }}onClick={onClose}>Cerrar</Button>
+  }}onClick={safeClose}>Cerrar</Button>
       </DialogActions>
 
       {/* Modal de confirmación y observación */}
@@ -263,7 +271,7 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
     onClose={() => {
       document.activeElement?.blur();
       setOpenAutorizar(false);
-      onClose?.(); // cerrar también el modal principal
+     // onClose?.(); // cerrar también el modal principal
     }}
     onSubmit={async () => {
       // 1️⃣ Cierra ambos modales de inmediato
@@ -282,10 +290,14 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
 {/* Dialog del Historial */}
       <Dialog
         open={openHist}
-        onClose={() => { document.activeElement?.blur(); setTimeout(() => setOpenHist(false), 0); }}
+        onClose={() => {
+      document.activeElement?.blur();
+      setTimeout(() => setOpenHist(false), 0);
+    }}
         fullWidth
         maxWidth="md"
         disableRestoreFocus
+        disableEnforceFocus
       >
         <DialogTitle
   sx={{
@@ -323,14 +335,16 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
     <CloseIcon />
   </IconButton>
 </DialogTitle>
-        <DialogContent dividers>
-          {s?.DocCod ? (
-            <HistorialTimeline docCod={s.DocCod} height={420} />
-          ) : (
-            <DialogContentText>
-              No se encontró el DocCod de esta solicitud.
-            </DialogContentText>
-          )}
+    <DialogContent dividers>
+      {s?.DocCod ? (
+       <Suspense fallback={<DialogContentText>Cargando historial...</DialogContentText>}>
+      <HistorialTimeline docCod={s.DocCod} height={420} />
+     </Suspense>
+    ) : (
+     <DialogContentText>
+       No se encontró el DocCod de esta solicitud.
+     </DialogContentText>
+   )}
         </DialogContent>
       </Dialog>
 

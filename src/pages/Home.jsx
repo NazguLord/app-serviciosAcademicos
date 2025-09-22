@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import {
   Box, Typography, Select, MenuItem, FormControl, InputLabel,
   TextField, Tabs, Tab, Paper
@@ -13,7 +13,7 @@ import { obtenerCampus } from "../api/campusApi";
 import { obtenerSolicitudes, denegarSolicitud } from "../api/solicitudesApi";
 import { AppContext } from "../context/AppContext";
 import DetalleSolicitudServicioAcademico from "../components/DetalleSolicitudServicioAcademico";
-import TablaSolicitudes from "../components/TablaSolicitudes"; // ✅ nuevo componente
+import TablaSolicitudes from "../components/TablaSolicitudes";
 import ExportButtons from "../components/ExportButtons";
 
 const estados = [
@@ -57,6 +57,17 @@ const mapearSolicitudes = (datos = []) =>
     DocSolObs: item.DocSolObs || "-",
   }));
 
+// 🔹 Nuevo componente memoizado solo para el modal
+const DetalleWrapper = React.memo(({ open, filaSel, onClose, onDenegar, onUpdate }) => (
+  <DetalleSolicitudServicioAcademico
+    open={open}
+    solicitud={filaSel}
+    onClose={onClose}
+    onDenegar={onDenegar}
+    onUpdate={onUpdate}
+  />
+));
+
 function Home() {
   const { userData, sessionValid } = useContext(AppContext);
   const theme = useTheme();
@@ -66,19 +77,20 @@ function Home() {
   const [estadoTab, setEstadoTab] = useState(0);
   const [solicitudes, setSolicitudes] = useState([]);
   const [busqueda, setBusqueda] = useState("");
+  const [filtro, setFiltro] = useState("");
   const [listaCampus, setListaCampus] = useState([]);
   const [cargando, setCargando] = useState(false);
 
   const estadoActual = estados[estadoTab].value;
 
   // ✅ función reutilizable para cargar solicitudes
-  const cargarSolicitudes = async () => {
+  const cargarSolicitudes = useCallback(async () => {
     if (!campusSeleccionado) return;
     setCargando(true);
     const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
     setSolicitudes(mapearSolicitudes(data));
     setCargando(false);
-  };
+  }, [campusSeleccionado, estadoActual]);
 
   useEffect(() => {
     const cargarCampus = async () => {
@@ -89,14 +101,21 @@ function Home() {
     cargarCampus();
   }, []);
 
-  // ✅ ahora usamos la función reutilizable
   useEffect(() => {
     cargarSolicitudes();
-  }, [campusSeleccionado, estadoTab]);
+  }, [cargarSolicitudes]);
 
-  const handleSearch = (e) => setBusqueda(e.target.value.toLowerCase());
+ const handleSearch = (e) => setBusqueda(e.target.value.toLowerCase());
 
-  const handleDenegar = async (row, observacion) => {
+  useEffect(() => {
+  const t = setTimeout(() => {
+    setFiltro(busqueda.toLowerCase());
+  }, 300); // espera 300ms
+  return () => clearTimeout(t);
+}, [busqueda]);
+
+  // ✅ memoizamos para que no se recree siempre
+  const handleDenegar = useCallback(async (row, observacion) => {
     try {
       setCargando(true);
 
@@ -127,7 +146,6 @@ function Home() {
         throw new Error(r?.payload?.message || 'No se pudo denegar');
       }
 
-      // 🔁 refrescamos siempre desde la función central
       await cargarSolicitudes();
 
       await Swal.fire({
@@ -147,7 +165,7 @@ function Home() {
       Swal.close();
       setCargando(false);
     }
-  };
+  }, [cargarSolicitudes]);
 
   const handleTabChange = (event, newValue) => {
     if (document.activeElement instanceof HTMLElement) {
@@ -166,6 +184,9 @@ function Home() {
     setTimeout(() => setOpenDetalle(true), 0);
   };
   const cerrarDetalle = () => setOpenDetalle(false);
+
+  // ✅ memoizar las filas evita renders innecesarios en DataGrid
+  const filasMemo = useMemo(() => solicitudes, [solicitudes]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", flex: 1, width: "100%", px: 2, py: 3 }}>
@@ -238,30 +259,30 @@ function Home() {
           <Tab label="COMPLETADOS" sx={{ color: theme.palette.success.main }} />
           <Tab label="DENEGADOS" sx={{ color: theme.palette.error.main }} />         
         </Tabs>  
-        <Box sx={{ position: "absolute",  right: -90, top: "50%", transform: "translateY(-50%)", display: "flex",   alignItems: "center", gap: 1,}}>
-       <ExportButtons rows={solicitudes} fileName={`solicitudes-${estadoActual}`} 
-        campus={listaCampus.find(c => c.CamCod === campusSeleccionado)?.CamNomEsp || "Todos"} 
-        />
-      </Box>      
+        <Box sx={{ position: "absolute",  right: -90, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 1 }}>
+          <ExportButtons
+            rows={filasMemo}
+            fileName={`solicitudes-${estadoActual}`} 
+            campus={listaCampus.find(c => c.CamCod === campusSeleccionado)?.CamNomEsp || "Todos"} 
+          />
+        </Box>      
       </Paper>
- 
-      
 
       {/* DataGrid */}
       <TablaSolicitudes
-        solicitudes={solicitudes}
+        solicitudes={filasMemo}
         busqueda={busqueda}
         cargando={cargando}
         onVerDetalle={abrirDetalle}
       />
 
-      {/* Modal detalle */}
-      <DetalleSolicitudServicioAcademico
+      {/* Modal detalle (memoizado en DetalleWrapper) */}
+      <DetalleWrapper
         open={openDetalle}
-        solicitud={filaSel}
+        filaSel={filaSel}
         onClose={cerrarDetalle}
         onDenegar={handleDenegar}
-        onUpdate={cargarSolicitudes} // 👈 aquí pasa la función
+        onUpdate={cargarSolicitudes}
       />
     </Box>
   );
