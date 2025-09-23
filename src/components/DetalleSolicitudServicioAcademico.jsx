@@ -12,7 +12,7 @@ import ModalDenegarSolicitud from "../components/ModalDenegarSolicitud";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import CloseIcon from "@mui/icons-material/Close";
 import ModalAutorizarPago from "../components/ModalPagoDocumento";
-
+import ModalAdjuntarComprobante from "../components/ModalAdjuntarComprobante";
 const HistorialTimeline = lazy(() => import("../components/HistorialTimeline"));
 
 /* ---------- helpers SOLO del modal ---------- */
@@ -60,6 +60,8 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
   const [openDenegar, setOpenDenegar] = useState(false);
   const [openHist, setOpenHist] = useState(false);
   const [openAutorizar, setOpenAutorizar] = useState(false);
+  const [openComprobante, setOpenComprobante] = useState(false);
+
   const s = solicitud;
   if (!s) return null;
   
@@ -194,6 +196,19 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
         >
           Ver historial
         </Button>
+
+         {/* ✅ nuevo botón de "Pagar" */}
+  {String(s?.EstNom || "").toLowerCase() === "pendiente de pago" && (
+    <Button
+      variant="contained"
+      color="primary"
+      onClick={() => setOpenComprobante(true)}
+      sx={{ fontWeight: 700 }}
+    >
+      Pagar
+    </Button>
+  )}
+
         {/* ✅ nuevo botón para autorizar */}
         {puedeAutorizar && (
           <Button
@@ -286,6 +301,16 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
   />
 )}
 
+{openComprobante && (
+  <ModalAdjuntarComprobante
+    open={openComprobante}
+    solicitud={s}
+    onClose={() => {
+      document.activeElement?.blur();
+      setOpenComprobante(false);
+    }}
+  />
+)}
 
 {/* Dialog del Historial */}
       <Dialog
