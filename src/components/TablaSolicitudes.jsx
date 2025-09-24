@@ -63,10 +63,10 @@ const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => 
     },
     { field: "DocNom", headerName: "Documento", width: 220, minWidth: 100, headerAlign: "center" },
 
-    { field: "EstReg", headerName: "Registro", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
-    { field: "CorNom", headerName: "Biblioteca", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
-    { field: "EstCont", headerName: "Contabilidad", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
     { field: "BecNom", headerName: "Becas", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
+    { field: "EstCont", headerName: "Contabilidad", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
+     { field: "CorNom", headerName: "Biblioteca", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
+    { field: "EstReg", headerName: "Registro", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
 
     {
       field: "EstNom",

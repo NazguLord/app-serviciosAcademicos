@@ -108,19 +108,13 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={700}>Correo institucional:</Typography>
-              <Typography variant="body2">
-                {s?.CueMailIns && s.CueMailIns !== "-" ? <a href={`mailto:${s.CueMailIns}`}>{s.CueMailIns}</a> : "-"}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={700}>Teléfono:</Typography>
-              <Typography variant="body2">{s?.CueTel || "-"}</Typography>
+               <Typography variant="body2" fontWeight={700}>Carrera / Plan:</Typography>
+              <Typography variant="body2">{s?.PlaNomEsp || "-"}</Typography>              
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={700}>Carrera / Plan:</Typography>
-              <Typography variant="body2">{s?.PlaNomEsp || "-"}</Typography>
+              <Typography variant="body2" fontWeight={700}>Teléfono:</Typography>
+              <Typography variant="body2">{s?.CueTel || "-"}</Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <Typography variant="body2" fontWeight={700}>Documento:</Typography>
@@ -129,35 +123,38 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
+             <Typography variant="body2" fontWeight={700}>Correo institucional:</Typography>
+              <Typography variant="body2">
+                {s?.CueMailIns && s.CueMailIns !== "-" ? <a href={`mailto:${s.CueMailIns}`}>{s.CueMailIns}</a> : "-"}
+              </Typography>
+            </Grid>            
+            <Grid item xs={12} sm={6}>
               <Typography variant="body2" fontWeight={700}>Fecha de solicitud:</Typography>
               {formatFechaSoloDia(s?.DocFchCre)}
             </Grid>
           </Grid>
 
           <Divider />
-
           {/* Dependencias */}
           <Stack direction="row" spacing={3} justifyContent="center" alignItems="center" flexWrap="wrap" sx={{ textAlign: "center" }}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2"><b>Registro</b></Typography>
-              <ChipSemaforo valor={s?.EstReg} />
-            </Stack>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2"><b>Biblioteca</b></Typography>
-              <ChipSemaforo valor={s?.CorNom} />
+             <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2"><b>Becas</b></Typography>
+              <ChipSemaforo valor={s?.BecNom} />
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
               <Typography variant="body2"><b>Contabilidad</b></Typography>
               <ChipSemaforo valor={s?.EstCont} />
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2"><b>Becas</b></Typography>
-              <ChipSemaforo valor={s?.BecNom} />
+              <Typography variant="body2"><b>Biblioteca</b></Typography>
+              <ChipSemaforo valor={s?.CorNom} />
             </Stack>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Typography variant="body2"><b>Registro</b></Typography>
+              <ChipSemaforo valor={s?.EstReg} />
+            </Stack>      
           </Stack>
-
           <Divider />
-
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Typography variant="body2" fontWeight={700}>Observaciones:</Typography>
