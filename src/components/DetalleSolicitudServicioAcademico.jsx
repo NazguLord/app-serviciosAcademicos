@@ -1,21 +1,30 @@
-// DetalleSolicitudServicioAcademico.jsx
-import React, { useState, lazy, Suspense } from "react";
+// src/components/DetalleSolicitudServicioAcademico.jsx
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Typography, Chip, Stack, Grid, Divider, IconButton, Button, DialogContentText 
+  Box, Typography, Chip, Stack, Grid, Divider,
+  IconButton, Button, DialogContentText, CircularProgress
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
-import ModalDenegarSolicitud from "../components/ModalDenegarSolicitud";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import CloseIcon from "@mui/icons-material/Close";
+import Swal from "sweetalert2";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+
+import ModalDenegarSolicitud from "../components/ModalDenegarSolicitud";
 import ModalAutorizarPago from "../components/ModalPagoDocumento";
 import ModalAdjuntarComprobante from "../components/ModalAdjuntarComprobante";
+import { actualizarEstadoSolicitud } from "../api/solicitudesApi";
+import { Document, Page, pdfjs } from "react-pdf";
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+
 const HistorialTimeline = lazy(() => import("../components/HistorialTimeline"));
 
-/* ---------- helpers SOLO del modal ---------- */
+/* ---------- helpers ---------- */
 const formatFechaSoloDia = (input) => {
   if (!input) return "-";
   const d = new Date(input);
@@ -25,17 +34,17 @@ const formatFechaSoloDia = (input) => {
 
 const estadoColorLocal = (theme, nombre = "") => {
   const txt = String(nombre).trim().toLowerCase();
-  if (txt.includes("deneg"))   return theme.palette.error.main;       // Denegado
-  if (txt === "entregado")     return theme.palette.success.main;     // Entregado exacto
-  if (txt.includes("proceso")) return theme.palette.warning.dark;     // En proceso (+ de entrega)
-  if (txt.startsWith("pendient")) return theme.palette.warning.light; // Pendiente / Pendiente de pago
+  if (txt.includes("deneg")) return theme.palette.error.main;
+  if (txt === "entregado") return theme.palette.success.main;
+  if (txt.includes("proceso")) return theme.palette.warning.dark;
+  if (txt.startsWith("pendient")) return theme.palette.warning.light;
   return theme.palette.text.secondary;
 };
 
 const ChipSemaforo = React.memo(function ChipSemaforo({ valor }) {
   const theme = useTheme();
   const v = String(valor ?? "").trim().toUpperCase();
-  const ok  = v === "OK";
+  const ok = v === "OK";
   const pdt = v === "PDT" || v === "PDTP";
   const color = ok
     ? theme.palette.success.main
@@ -54,29 +63,162 @@ const ChipSemaforo = React.memo(function ChipSemaforo({ valor }) {
   );
 });
 
-/* ---------- componente ---------- */
-export default function DetalleSolicitudServicioAcademico({ open, solicitud, onClose, onDenegar, onUpdate }) {
+/* ---------- componente principal ---------- */
+export default function DetalleSolicitudServicioAcademico({
+  open,
+  solicitud,
+  onClose,
+  onDenegar,
+  onUpdate,
+}) {
   const theme = useTheme();
+
+  // ⚙️ Hooks siempre deben declararse ANTES de cualquier return condicional
   const [openDenegar, setOpenDenegar] = useState(false);
   const [openHist, setOpenHist] = useState(false);
   const [openAutorizar, setOpenAutorizar] = useState(false);
   const [openComprobante, setOpenComprobante] = useState(false);
+  const [visorArchivo, setVisorArchivo] = useState({
+  abierto: false,
+  nombre: "",
+  ruta: "",
+  esPdf: false,
+});
 
-  const s = solicitud;
+  const [documentos, setDocumentos] = useState([]);
+  const [cargandoDocs, setCargandoDocs] = useState(false);
+
+  const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
+  const s = solicitud; // se usa después
+
+  /* ✅ Traer documentos al abrir el modal */
+  useEffect(() => {
+  if (open && s?.CueCod) {
+    console.log("🔍 Datos enviados al endpoint:");
+    console.log("CueCod:", s?.CueCod);
+    console.log("CueReg:", s?.CueReg);
+    console.log("DocCod:", s?.DocCod);
+    console.log("DocReg:", s?.DocReg);
+
+    const fetchDocs = async () => {
+      setCargandoDocs(true);
+      try {
+        // 🔹 Detectar automáticamente el CueReg correcto
+        let cueRegFinal = s?.CueReg || s?.DocReg || "";
+
+        if (!cueRegFinal && s?.DocCod) {
+          const match = String(s.DocCod).split("-")[0];
+          cueRegFinal = match;
+        }
+
+        if (!cueRegFinal) {
+          console.warn("⚠️ No se encontró ningún identificador válido para CueReg.");
+          setDocumentos([]);
+          setCargandoDocs(false);
+          return;
+        }
+
+        console.log("👉 Usando CueRegFinal:", cueRegFinal);
+
+        const res = await fetch(
+          `${BASE_URL}/api/agestiones/documentos/buscar.php?CueCod=${s.CueCod}&CueReg=${cueRegFinal}&filterslength=0&pagenum=0&pagesize=10&page=0&limit=10`
+        );
+
+        const text = await res.text();
+        let data;
+
+        try {
+          const clean = text.trim().replace(/^[^{[]+/, "");
+          data = JSON.parse(clean);
+        } catch (parseErr) {
+          console.warn("⚠️ Error al parsear JSON, respuesta cruda:", text);
+          data = { data: [] };
+        }
+
+        if (Array.isArray(data.data)) {
+          setDocumentos(data.data);
+        } else {
+          console.warn("⚠️ No se encontró arreglo 'data' en respuesta:", data);
+          setDocumentos([]);
+        }
+      } catch (err) {
+        console.error("Error cargando documentos:", err);
+        setDocumentos([]);
+      } finally {
+        setCargandoDocs(false);
+      }
+    };
+
+    fetchDocs();
+  }
+}, [open, s]);
+
+  // ⚠️ Este return puede ir tranquilo después de los hooks
   if (!s) return null;
-  
+
   const puedeDenegar = String(s?.EstNom || "").toLowerCase().startsWith("pendient");
   const puedeAutorizar = String(s?.EstNom || "").toLowerCase() === "pendiente";
 
   const safeClose = () => {
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur();
-  }
-  setTimeout(() => onClose?.(), 0);
-};
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setTimeout(() => onClose?.(), 0);
+  };
 
+  /* ✅ Función para actualizar el chip de dependencia */
+  const handleActualizarChip = async (dependencia, valor) => {
+    try {
+      const payload = {
+        DocCod: s?.DocCod,
+        Dependencia: dependencia,
+        Estado: valor,
+      };
+
+      const resp = await actualizarEstadoSolicitud(payload);
+
+      if (resp?.status === "OK") {
+        await Swal.fire({
+          icon: "success",
+          title: `Estado de ${dependencia} actualizado a ${valor}`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        onUpdate?.();
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error al actualizar estado",
+          text: resp?.message || "No se pudo completar la acción",
+        });
+      }
+    } catch (error) {
+      console.error("Error actualizando chip:", error);
+      Swal.fire("Error", "No se pudo actualizar el estado", "error");
+    }
+  };
+
+  /* ✅ Verificar si todos los chips están en OK */
+  const todosOk =
+    String(s?.BecNom).toUpperCase() === "OK" &&
+    String(s?.EstCont).toUpperCase() === "OK" &&
+    String(s?.CorNom).toUpperCase() === "OK" &&
+    String(s?.EstReg).toUpperCase() === "OK";
+
+    const mostrarBotonRegistro = String(s?.EstReg || "").toUpperCase() === "PDT";
+
+  /* ---------- Render principal ---------- */
   return (
-    <Dialog open={open}  onClose={safeClose}  maxWidth="sm" fullWidth keepMounted transitionDuration={{ appear: 120, enter: 120, exit: 90 }} disableEnforceFocus disableRestoreFocus>
+    <Dialog
+      open={open}
+      onClose={safeClose}
+      maxWidth="md"
+      fullWidth
+      keepMounted
+      transitionDuration={{ appear: 120, enter: 120, exit: 90 }}
+      disableEnforceFocus
+      disableRestoreFocus
+    >
       <DialogTitle sx={{ pr: 8, py: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 4 }}>
           <Typography variant="h6" fontWeight={700}>Detalle de solicitud</Typography>
@@ -84,12 +226,12 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
             label={s?.EstNom || "-"}
             sx={{
               bgcolor: alpha(estadoColorLocal(theme, s?.EstNom || ""), 0.12),
-              color:   estadoColorLocal(theme, s?.EstNom || ""),
+              color: estadoColorLocal(theme, s?.EstNom || ""),
               fontWeight: 700,
             }}
           />
         </Box>
-        <IconButton onClick={safeClose} sx={{ position: "absolute", right: 8, top: 8 }} aria-label="Cerrar">
+        <IconButton onClick={safeClose} sx={{ position: "absolute", right: 8, top: 8 }}>
           <CloseRoundedIcon />
         </IconButton>
       </DialogTitle>
@@ -98,278 +240,240 @@ export default function DetalleSolicitudServicioAcademico({ open, solicitud, onC
         <Stack spacing={2}>
           {/* Datos principales */}
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={700}>Cuenta:</Typography>
-              <Typography variant="body2">{s?.CueCod || "-"}</Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={700}>Alumno:</Typography>
-              <Typography variant="body2">{s?.AluNom || "-"}</Typography>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-               <Typography variant="body2" fontWeight={700}>Carrera / Plan:</Typography>
-              <Typography variant="body2">{s?.PlaNomEsp || "-"}</Typography>              
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={700}>Teléfono:</Typography>
-              <Typography variant="body2">{s?.CueTel || "-"}</Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={700}>Documento:</Typography>
-              <Typography variant="body2">
-                {s?.DocNom || "-"}{s?.DocLeng && ` (${s.DocLeng})`}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-             <Typography variant="body2" fontWeight={700}>Correo institucional:</Typography>
-              <Typography variant="body2">
-                {s?.CueMailIns && s.CueMailIns !== "-" ? <a href={`mailto:${s.CueMailIns}`}>{s.CueMailIns}</a> : "-"}
-              </Typography>
-            </Grid>            
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={700}>Fecha de solicitud:</Typography>
-              {formatFechaSoloDia(s?.DocFchCre)}
-            </Grid>
+            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Cuenta:</Typography><Typography>{s?.CueCod || "-"}</Typography></Grid>
+            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Alumno:</Typography><Typography>{s?.AluNom || "-"}</Typography></Grid>
+            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Carrera / Plan:</Typography><Typography>{s?.PlaNomEsp || "-"}</Typography></Grid>
+            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Teléfono:</Typography><Typography>{s?.CueTel || "-"}</Typography></Grid>
+            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Documento:</Typography><Typography>{s?.DocNom || "-"}{s?.DocLeng && ` (${s.DocLeng})`}</Typography></Grid>
+            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Correo institucional:</Typography><Typography>{s?.CueMailIns && s.CueMailIns !== "-" ? <a href={`mailto:${s.CueMailIns}`}>{s.CueMailIns}</a> : "-"}</Typography></Grid>
+            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Fecha de solicitud:</Typography>{formatFechaSoloDia(s?.DocFchCre)}</Grid>
           </Grid>
 
           <Divider />
+
           {/* Dependencias */}
-          <Stack direction="row" spacing={3} justifyContent="center" alignItems="center" flexWrap="wrap" sx={{ textAlign: "center" }}>
-             <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2"><b>Becas</b></Typography>
-              <ChipSemaforo valor={s?.BecNom} />
-            </Stack>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2"><b>Contabilidad</b></Typography>
-              <ChipSemaforo valor={s?.EstCont} />
-            </Stack>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2"><b>Biblioteca</b></Typography>
-              <ChipSemaforo valor={s?.CorNom} />
-            </Stack>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2"><b>Registro</b></Typography>
-              <ChipSemaforo valor={s?.EstReg} />
-            </Stack>      
+          <Stack direction="row" spacing={3} justifyContent="center" alignItems="center" flexWrap="wrap">
+            <Stack direction="row" spacing={1}><Typography><b>Becas</b></Typography><ChipSemaforo valor={s?.BecNom} /></Stack>
+            <Stack direction="row" spacing={1}><Typography><b>Contabilidad</b></Typography><ChipSemaforo valor={s?.EstCont} /></Stack>
+            <Stack direction="row" spacing={1}><Typography><b>Biblioteca</b></Typography><ChipSemaforo valor={s?.CorNom} /></Stack>
+            <Stack direction="row" spacing={1}><Typography><b>Registro</b></Typography><ChipSemaforo valor={s?.EstReg} /></Stack>
           </Stack>
+
+          {/* Documentos adjuntos */}
+<Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+  <Box sx={{ width: "75%" }}>
+    <Typography fontWeight={700} sx={{ mb: 1 }}>
+      Documentos adjuntos:
+    </Typography>
+
+    {cargandoDocs ? (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+        <CircularProgress size={28} />
+      </Box>
+    ) : documentos.length === 0 ? (
+      <Typography>No se encontraron documentos.</Typography>
+    ) : (
+      <Stack spacing={1}>
+        {documentos.map((doc, idx) => {
+          const rutaCompleta = `${BASE_URL}${doc.DocPath}`;
+
+          return (
+            <Box
+              key={idx}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1.5,
+                p: 1,
+                bgcolor: "background.paper",
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  wordBreak: "break-all",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  flex: 1,
+                }}
+              >
+                📎 {doc.DocNom}
+              </Typography>
+
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={() => window.open(rutaCompleta, "_blank", "noopener,noreferrer")}
+                sx={{
+                  ml: 1,
+                  bgcolor: "#f5f5f5",
+                  border: "1px solid #ddd",
+                  "&:hover": { bgcolor: "#e0e0e0" },
+                }}
+              >
+                <VisibilityIcon />
+              </IconButton>
+            </Box>
+          );
+        })}
+      </Stack>
+    )}
+  </Box>
+</Box>
+
+{/* Modal visor de documento */}
+{visorArchivo?.abierto && (
+  <Dialog
+    open={visorArchivo.abierto}
+    onClose={() => setVisorArchivo({ abierto: false })}
+    maxWidth="sm"
+    fullWidth
+  >
+    <DialogTitle>
+      {visorArchivo.nombre}
+      <IconButton
+        onClick={() => setVisorArchivo({ abierto: false })}
+        sx={{ position: "absolute", right: 8, top: 8 }}
+      >
+        <CloseRoundedIcon />
+      </IconButton>
+    </DialogTitle>
+
+    <DialogContent
+      dividers
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        py: 3,
+      }}
+    >
+      <Typography sx={{ mb: 2, textAlign: "center" }}>
+        Este archivo se abrirá en una nueva pestaña para una mejor visualización.
+      </Typography>
+
+      <Button
+        variant="contained"
+        color="primary"
+        href={visorArchivo.ruta}
+        target="_blank"
+        rel="noopener noreferrer"
+        startIcon={<VisibilityIcon />}
+        sx={{ fontWeight: 700 }}
+      >
+        Abrir archivo
+      </Button>
+    </DialogContent>
+  </Dialog>
+)}
+
+          {/* Botón marcar OK solo si Registro está en PDT */}
+{mostrarBotonRegistro && (
+  <Box sx={{ textAlign: "center", mt: 2 }}>
+    <Button
+      variant="contained"
+      color="success"
+      sx={{ fontWeight: 700 }}
+      onClick={() => handleActualizarChip("REGISTRO", "OK")}
+    >
+      Marcar como OK (Registro)
+    </Button>
+  </Box>
+)}
+
+          {/* Botón global si todos los chips están en OK */}
+          {todosOk && (
+            <Box sx={{ textAlign: "center", mt: 2 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ fontWeight: 700 }}
+                onClick={() =>
+                  Swal.fire({
+                    icon: "info",
+                    title: "Mover solicitud de estado",
+                    text: "Aquí se implementará el cambio global de estado.",
+                    confirmButtonText: "Entendido",
+                  })
+                }
+              >
+                Mover solicitud de estado
+              </Button>
+            </Box>
+          )}
+
           <Divider />
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="body2" fontWeight={700}>Observaciones:</Typography>
-              <Typography variant="body2" sx={{ whiteSpace: "pre-line" }}>{s?.DocSolObs || "-"}</Typography>
-            </Grid>
-          </Grid>
+
+          <Typography fontWeight={700}>Observaciones:</Typography>
+          <Typography sx={{ whiteSpace: "pre-line" }}>{s?.DocSolObs || "-"}</Typography>
         </Stack>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
         <Box sx={{ flex: 1 }} />
-        <Button
-        sx={{
-    borderColor: (theme) =>
-      theme.palette.mode === "dark"
-        ? theme.palette.common.white
-        : theme.palette.grey[400],
-    color: (theme) =>
-      theme.palette.mode === "dark"
-        ? theme.palette.common.white
-        : theme.palette.text.primary,
-    "&:hover": {
-      borderColor: (theme) =>
-        theme.palette.mode === "dark"
-          ? theme.palette.primary.main
-          : theme.palette.text.primary,
-      bgcolor: (theme) =>
-        theme.palette.mode === "dark"
-          ? "rgba(255,255,255,0.08)"
-          : "rgba(0,0,0,0.04)",
-    },
-  }}
-          variant="outlined"
-          startIcon={<TimelineIcon />}
-          onClick={() => setOpenHist(true)}
-        >
-          Ver historial
-        </Button>
-
-         {/* ✅ nuevo botón de "Pagar" */}
-  {String(s?.EstNom || "").toLowerCase() === "pendiente de pago" && (
-    <Button
-      variant="contained"
-      color="primary"
-      onClick={() => setOpenComprobante(true)}
-      sx={{ fontWeight: 700 }}
-    >
-      Pagar
-    </Button>
-  )}
-
-        {/* ✅ nuevo botón para autorizar */}
+        <Button variant="outlined" startIcon={<TimelineIcon />} onClick={() => setOpenHist(true)}>Ver historial</Button>
+        {String(s?.EstNom || "").toLowerCase() === "pendiente de pago" && (
+          <Button variant="contained" color="primary" onClick={() => setOpenComprobante(true)}>Pagar</Button>
+        )}
         {puedeAutorizar && (
-          <Button
-            variant="outlined"
-            color="success"
-            onClick={() => setOpenAutorizar(true)}
-            sx={(theme) => ({
-      color: theme.palette.success.main,
-      borderColor: theme.palette.success.main,
-      "&:hover": {
-        borderColor: theme.palette.success.dark,
-        bgcolor: theme.palette.mode === "dark"
-          ? "rgba(46, 125, 50, 0.12)" // ~ success.main con alpha
-          : "rgba(46, 125, 50, 0.04)",
-      },
-      fontWeight: 700,
-    })}
-          >
-            Autorizar Pago
-          </Button>
+          <Button variant="outlined" color="success" onClick={() => setOpenAutorizar(true)}>Autorizar Pago</Button>
         )}
         {puedeDenegar && (
-          <Button variant="outlined" color="error" onClick={() => setOpenDenegar(true)}>
-            Denegar
-          </Button>
+          <Button variant="outlined" color="error" onClick={() => setOpenDenegar(true)}>Denegar</Button>
         )}
-        <Button sx={{
-    borderColor: (theme) =>
-      theme.palette.mode === "dark"
-        ? theme.palette.common.white
-        : theme.palette.grey[400],
-    color: (theme) =>
-      theme.palette.mode === "dark"
-        ? theme.palette.common.white
-        : theme.palette.text.primary,
-    "&:hover": {
-      borderColor: (theme) =>
-        theme.palette.mode === "dark"
-          ? theme.palette.primary.main
-          : theme.palette.text.primary,
-      bgcolor: (theme) =>
-        theme.palette.mode === "dark"
-          ? "rgba(255,255,255,0.08)"
-          : "rgba(0,0,0,0.04)",
-    },
-  }}onClick={safeClose}>Cerrar</Button>
+        <Button onClick={safeClose}>Cerrar</Button>
       </DialogActions>
 
-      {/* Modal de confirmación y observación */}
+      {/* Modales secundarios */}
       {openDenegar && (
-    <ModalDenegarSolicitud
-  open={openDenegar}
-  onClose={() => { document.activeElement?.blur(); setOpenDenegar(false)}}
-  onConfirm={async (observacion) => {
-    // ✅ 1) Quitar el foco del botón activo para evitar el warning
-    document.activeElement?.blur();
+        <ModalDenegarSolicitud
+          open={openDenegar}
+          onClose={() => { document.activeElement?.blur(); setOpenDenegar(false); }}
+          onConfirm={async (observacion) => {
+            document.activeElement?.blur();
+            setOpenDenegar(false);
+            onClose?.();
+            setTimeout(() => onDenegar?.(s, observacion), 0);
+          }}
+        />
+      )}
 
-    // ✅ 2) Cerrar los modales inmediatamente
-    setOpenDenegar(false);
-    onClose?.();
+      {openAutorizar && (
+        <ModalAutorizarPago
+          open={openAutorizar}
+          solicitud={s}
+          onClose={() => { document.activeElement?.blur(); setOpenAutorizar(false); }}
+          onSubmit={async () => { setOpenAutorizar(false); onClose?.(); setTimeout(async () => await onUpdate?.(), 0); }}
+        />
+      )}
 
-    // ✅ 3) Disparar la acción después
-    setTimeout(() => {
-      onDenegar?.(s, observacion); // handleDenegar muestra el loader y el éxito/error
-    }, 0);
-  }}
-/>
-)}
+      {openComprobante && (
+        <ModalAdjuntarComprobante open={openComprobante} solicitud={s} onClose={() => setOpenComprobante(false)} />
+      )}
 
-{/* ✅ Modal Autorizar */}
-   {openAutorizar && (
-  <ModalAutorizarPago
-    open={openAutorizar}
-    solicitud={s}
-    onClose={() => {
-      document.activeElement?.blur();
-      setOpenAutorizar(false);
-     // onClose?.(); // cerrar también el modal principal
-    }}
-    onSubmit={async () => {
-      // 1️⃣ Cierra ambos modales de inmediato
-      setOpenAutorizar(false);
-      onClose?.();
-
-      // 2️⃣ Refresca la grilla DESPUÉS de que los modales se desmonten
-      setTimeout(async () => {
-        await onUpdate?.(); // 👈 Home.jsx refresca con obtenerSolicitudes
-      }, 0);
-    }}
-  />
-)}
-
-{openComprobante && (
-  <ModalAdjuntarComprobante
-    open={openComprobante}
-    solicitud={s}
-    onClose={() => {
-      document.activeElement?.blur();
-      setOpenComprobante(false);
-    }}
-  />
-)}
-
-{/* Dialog del Historial */}
-      <Dialog
-        open={openHist}
-        onClose={() => {
-      document.activeElement?.blur();
-      setTimeout(() => setOpenHist(false), 0);
-    }}
-        fullWidth
-        maxWidth="md"
-        disableRestoreFocus
-        disableEnforceFocus
-      >
-        <DialogTitle
-  sx={{
-    textAlign: "center",
-    fontWeight: 700,
-    fontSize: "1.25rem", // más grande que el default
-     color: (theme) =>
-      theme.palette.mode === "dark"
-        ? theme.palette.common.white
-        : theme.palette.primary.main,
-    position: "relative",
-    borderBottom: "1px solid",
-    borderColor: (theme) => theme.palette.divider,
-    py: 1.5,
-  }}
->
-  Historial de acciones
-  <IconButton
-    onMouseDown={(e) => e.preventDefault()}
-    aria-label="Cerrar"
-    onClick={() => setOpenHist(false)}
-    sx={{
-      position: "absolute",
-      right: 8,
-      top: 8,
-      color: (theme) =>
-        theme.palette.mode === "dark"
-          ? theme.palette.grey[300]
-          : theme.palette.grey[500],
-      "&:hover": {
-        color: (theme) => theme.palette.error.main,
-      },
-    }}
-  >
-    <CloseIcon />
-  </IconButton>
-</DialogTitle>
-    <DialogContent dividers>
-      {s?.DocCod ? (
-       <Suspense fallback={<DialogContentText>Cargando historial...</DialogContentText>}>
-      <HistorialTimeline docCod={s.DocCod} height={420} />
-     </Suspense>
-    ) : (
-     <DialogContentText>
-       No se encontró el DocCod de esta solicitud.
-     </DialogContentText>
-   )}
+      {/* Historial */}
+      <Dialog open={openHist} onClose={() => setTimeout(() => setOpenHist(false), 0)} fullWidth maxWidth="md" disableRestoreFocus disableEnforceFocus>
+        <DialogTitle sx={{ textAlign: "center", fontWeight: 700, fontSize: "1.25rem", borderBottom: "1px solid", borderColor: theme.palette.divider }}>
+          Historial de acciones
+          <IconButton onClick={() => setOpenHist(false)} sx={{ position: "absolute", right: 8, top: 8 }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {s?.DocCod ? (
+            <Suspense fallback={<DialogContentText>Cargando historial...</DialogContentText>}>
+              <HistorialTimeline docCod={s.DocCod} height={420} />
+            </Suspense>
+          ) : (
+            <DialogContentText>No se encontró el DocCod de esta solicitud.</DialogContentText>
+          )}
         </DialogContent>
       </Dialog>
-
-</Dialog>
+    </Dialog>
   );
 }

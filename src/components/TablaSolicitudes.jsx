@@ -96,9 +96,26 @@ const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => 
           <IconButton
             size="small"
             onClick={(e) => {
-              e.stopPropagation();
-              onVerDetalle(params.row, e);
-            }}
+  e.stopPropagation();
+ const filaCompleta = solicitudes.find((s) => s.DocCod === params.row.DocCod);
+
+  if (filaCompleta) {
+    // 🔧 Crear CueReg si no viene en los datos
+    filaCompleta.CueReg =
+      filaCompleta.CueReg ||
+      filaCompleta.DocCod?.split("-")[0] ||
+      filaCompleta.CueCod;
+
+    // 🔧 Crear DocReg si tampoco existe
+    filaCompleta.DocReg =
+      filaCompleta.DocReg ||
+      filaCompleta.DocCod ||
+      "";
+
+    //console.log("✅ Fila lista con CueReg:", filaCompleta);
+    onVerDetalle(filaCompleta, e);
+  }
+}}
             aria-label="Ver detalle"
             sx={{
               color: theme.palette.info.main,
@@ -128,6 +145,7 @@ const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => 
     <Box sx={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <DataGrid
         rows={filteredRows}
+        getRowId={(row) => row.DocCod}
         columns={columnas}
         columnVisibilityModel={columnVisibilityModel}
         density={isMdDown ? "compact" : "standard"}

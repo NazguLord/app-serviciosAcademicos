@@ -81,3 +81,34 @@ export async function autorizarSolicitud(payload) {
   }
   return json; // { status: "OK" | "ER", payload: {...} }
 }
+
+export async function actualizarEstadoSolicitud(payload) {
+  const formData = new FormData();
+  formData.append("DocCod", payload.DocCod);
+  formData.append("Dependencia", payload.Dependencia);
+  formData.append("Estado", payload.Estado);
+
+  try {
+    const res = await fetch(
+      `${API_BASE}asolicitud_documentos/actualizar_estado_dependencia.php`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      console.error("⚠️ Error al parsear JSON:", text);
+      json = { status: "ER", message: "Respuesta no válida del servidor" };
+    }
+
+    return json;
+  } catch (error) {
+    console.error("❌ Error al actualizar estado:", error);
+    return { status: "ER", message: error.message };
+  }
+}
