@@ -21,7 +21,7 @@ import { actualizarEstadoSolicitud } from "../api/solicitudesApi";
 import { Document, Page, pdfjs } from "react-pdf";
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-
+import { validarBiblioteca } from "../api/solicitudesApi";
 const HistorialTimeline = lazy(() => import("../components/HistorialTimeline"));
 
 /* ---------- helpers ---------- */
@@ -87,9 +87,26 @@ export default function DetalleSolicitudServicioAcademico({
 
   const [documentos, setDocumentos] = useState([]);
   const [cargandoDocs, setCargandoDocs] = useState(false);
+  const [estadoBiblioteca, setEstadoBiblioteca] = useState(null);
 
   const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
   const s = solicitud; // se usa después
+
+  useEffect(() => {
+  if (!solicitud?.CueCod) return;
+
+  async function verificarBiblioteca() {
+    const res = await validarBiblioteca(solicitud.CueCod);
+    if (res.ok) {
+      setEstadoBiblioteca(res.tienePendientes ? "PDT" : "OK");
+      console.log("📚 Resultado Biblioteca:", res);
+    } else {
+      console.error("Error al consultar Biblioteca:", res.message);
+    }
+  }
+
+  verificarBiblioteca();
+}, [solicitud?.CueCod]);
 
   /* ✅ Traer documentos al abrir el modal */
   useEffect(() => {
@@ -183,18 +200,36 @@ export default function DetalleSolicitudServicioAcademico({
           title: `Estado de ${dependencia} actualizado a ${valor}`,
           timer: 1500,
           showConfirmButton: false,
+           didOpen: () => {
+          const swalContainer = document.querySelector(".swal2-container");
+          if (swalContainer) swalContainer.style.zIndex = 20000; // 👈 para que quede arriba
+        },
         });
+         if (dependencia === "REGISTRO") s.EstReg = valor;
+         if (dependencia === "BECAS") s.BecNom = valor;
         onUpdate?.();
       } else {
         Swal.fire({
-          icon: "error",
-          title: "Error al actualizar estado",
-          text: resp?.message || "No se pudo completar la acción",
+        icon: "error",
+        title: "Error al actualizar estado",
+        text: resp?.message || "No se pudo completar la acción",
+        didOpen: () => {
+          const swalContainer = document.querySelector(".swal2-container");
+          if (swalContainer) swalContainer.style.zIndex = 20000;
+         },
         });
       }
     } catch (error) {
       console.error("Error actualizando chip:", error);
-      Swal.fire("Error", "No se pudo actualizar el estado", "error");
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudo actualizar el estado",
+      didOpen: () => {
+        const swalContainer = document.querySelector(".swal2-container");
+        if (swalContainer) swalContainer.style.zIndex = 20000;
+      },
+     });
     }
   };
 
@@ -202,8 +237,9 @@ export default function DetalleSolicitudServicioAcademico({
   const todosOk =
     String(s?.BecNom).toUpperCase() === "OK" &&
     String(s?.EstCont).toUpperCase() === "OK" &&
-    String(s?.CorNom).toUpperCase() === "OK" &&
-    String(s?.EstReg).toUpperCase() === "OK";
+   // String(s?.CorNom).toUpperCase() === "OK" 
+    String(s?.EstReg).toUpperCase() === "OK" &&
+    String(estadoBiblioteca || "").toUpperCase() === "OK";
 
     const mostrarBotonRegistro = String(s?.EstReg || "").toUpperCase() === "PDT";
 
@@ -253,9 +289,9 @@ export default function DetalleSolicitudServicioAcademico({
 
           {/* Dependencias */}
           <Stack direction="row" spacing={3} justifyContent="center" alignItems="center" flexWrap="wrap">
-            <Stack direction="row" spacing={1}><Typography><b>Becas</b></Typography><ChipSemaforo valor={s?.BecNom} /></Stack>
+            <Stack direction="row" spacing={1}><Typography><b>Becas</b></Typography><ChipSemaforo valor={s?.BecNom} label="Biblioteca"  /></Stack>
             <Stack direction="row" spacing={1}><Typography><b>Contabilidad</b></Typography><ChipSemaforo valor={s?.EstCont} /></Stack>
-            <Stack direction="row" spacing={1}><Typography><b>Biblioteca</b></Typography><ChipSemaforo valor={s?.CorNom} /></Stack>
+            <Stack direction="row" spacing={1}><Typography><b>Biblioteca</b></Typography><ChipSemaforo valor={estadoBiblioteca} /></Stack>
             <Stack direction="row" spacing={1}><Typography><b>Registro</b></Typography><ChipSemaforo valor={s?.EstReg} /></Stack>
           </Stack>
 
@@ -372,19 +408,7 @@ export default function DetalleSolicitudServicioAcademico({
   </Dialog>
 )}
 
-          {/* Botón marcar OK solo si Registro está en PDT */}
-{mostrarBotonRegistro && (
-  <Box sx={{ textAlign: "center", mt: 2 }}>
-    <Button
-      variant="contained"
-      color="success"
-      sx={{ fontWeight: 700 }}
-      onClick={() => handleActualizarChip("REGISTRO", "OK")}
-    >
-      Marcar como OK (Registro)
-    </Button>
-  </Box>
-)}
+  
 
           {/* Botón global si todos los chips están en OK */}
           {todosOk && (
@@ -420,6 +444,17 @@ export default function DetalleSolicitudServicioAcademico({
         {String(s?.EstNom || "").toLowerCase() === "pendiente de pago" && (
           <Button variant="contained" color="primary" onClick={() => setOpenComprobante(true)}>Pagar</Button>
         )}
+        {/* ✅ Nuevo botón de “Marcar como OK (Registro)” */}
+  {mostrarBotonRegistro && (
+    <Button
+      variant="contained"
+      color="success"
+      sx={{ fontWeight: 700 }}
+      onClick={() => handleActualizarChip("REGISTRO", "OK")}
+    >
+      Registro OK
+    </Button>
+  )}
         {puedeAutorizar && (
           <Button variant="outlined" color="success" onClick={() => setOpenAutorizar(true)}>Autorizar Pago</Button>
         )}

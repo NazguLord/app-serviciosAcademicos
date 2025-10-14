@@ -8,7 +8,14 @@ import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import HorizontalRuleRoundedIcon from "@mui/icons-material/HorizontalRuleRounded";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
-const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => {
+const TablaSolicitudes = ({
+  solicitudes,
+  busqueda,
+  cargando,
+  onVerDetalle,
+  // 👇 NUEVO: mapa opcional CueCod -> "OK" | "PDT"
+  bibliotecaMap = {},
+}) => {
   const theme = useTheme();
   const isMdDown = useMediaQuery(theme.breakpoints.down("md"));
   const isSmDown = useMediaQuery(theme.breakpoints.down("sm"));
@@ -39,13 +46,7 @@ const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => 
   const renderEllipsis = (text) => (
     <span
       title={text}
-      style={{
-        display: "inline-block",
-        maxWidth: "100%",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-      }}
+      style={{ display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
     >
       {text}
     </span>
@@ -65,7 +66,22 @@ const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => 
 
     { field: "BecNom", headerName: "Becas", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
     { field: "EstCont", headerName: "Contabilidad", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
-     { field: "CorNom", headerName: "Biblioteca", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
+
+    // 👇 CAMBIADO: la celda usa el mapa si existe, si no, cae a CorNom (comportamiento actual)
+    {
+      field: "Biblioteca",
+      headerName: "Biblioteca",
+      flex: 0.28,
+      minWidth: 58,
+      headerAlign: "center",
+      align: "center",
+      sortable: false,
+      renderCell: (p) => {
+        const estado = bibliotecaMap?.[p.row.CueCod] ?? p.row.CorNom;
+        return renderCheck(estado);
+      },
+    },
+
     { field: "EstReg", headerName: "Registro", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
 
     {
@@ -96,26 +112,14 @@ const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => 
           <IconButton
             size="small"
             onClick={(e) => {
-  e.stopPropagation();
- const filaCompleta = solicitudes.find((s) => s.DocCod === params.row.DocCod);
-
-  if (filaCompleta) {
-    // 🔧 Crear CueReg si no viene en los datos
-    filaCompleta.CueReg =
-      filaCompleta.CueReg ||
-      filaCompleta.DocCod?.split("-")[0] ||
-      filaCompleta.CueCod;
-
-    // 🔧 Crear DocReg si tampoco existe
-    filaCompleta.DocReg =
-      filaCompleta.DocReg ||
-      filaCompleta.DocCod ||
-      "";
-
-    //console.log("✅ Fila lista con CueReg:", filaCompleta);
-    onVerDetalle(filaCompleta, e);
-  }
-}}
+              e.stopPropagation();
+              const filaCompleta = solicitudes.find((s) => s.DocCod === params.row.DocCod);
+              if (filaCompleta) {
+                filaCompleta.CueReg = filaCompleta.CueReg || filaCompleta.DocCod?.split("-")[0] || filaCompleta.CueCod;
+                filaCompleta.DocReg = filaCompleta.DocReg || filaCompleta.DocCod || "";
+                onVerDetalle(filaCompleta, e);
+              }
+            }}
             aria-label="Ver detalle"
             sx={{
               color: theme.palette.info.main,
@@ -132,14 +136,13 @@ const TablaSolicitudes = ({ solicitudes, busqueda, cargando, onVerDetalle }) => 
     },
   ];
 
-  const filteredRows = useMemo(() => 
-  solicitudes.filter((row) =>
-    Object.values(row).some(
-      (value) => typeof value === "string" && value.toLowerCase().includes(busqueda)
-    )
-  ),
-  [solicitudes, busqueda]
-);
+  const filteredRows = useMemo(
+    () =>
+      solicitudes.filter((row) =>
+        Object.values(row).some((value) => typeof value === "string" && value.toLowerCase().includes(busqueda))
+      ),
+    [solicitudes, busqueda]
+  );
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>

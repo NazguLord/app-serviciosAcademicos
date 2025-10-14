@@ -10,7 +10,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import Swal from 'sweetalert2';
 
 import { obtenerCampus } from "../api/campusApi";
-import { obtenerSolicitudes, denegarSolicitud } from "../api/solicitudesApi";
+import { obtenerSolicitudes, denegarSolicitud, validarBiblioteca } from "../api/solicitudesApi";
 import { AppContext } from "../context/AppContext";
 import DetalleSolicitudServicioAcademico from "../components/DetalleSolicitudServicioAcademico";
 import TablaSolicitudes from "../components/TablaSolicitudes";
@@ -76,6 +76,7 @@ function Home() {
   const [campusSeleccionado, setCampusSeleccionado] = useState("");
   const [estadoTab, setEstadoTab] = useState(0);
   const [solicitudes, setSolicitudes] = useState([]);
+  const [bibliotecaMap, setBibliotecaMap] = useState({});
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState("");
   const [listaCampus, setListaCampus] = useState([]);
@@ -104,6 +105,33 @@ function Home() {
   useEffect(() => {
     cargarSolicitudes();
   }, [cargarSolicitudes]);
+
+
+  // Construir el mapa de estados de Biblioteca por CueCod
+ useEffect(() => {
+   if (!solicitudes?.length) {
+     setBibliotecaMap({});
+     return;
+   }
+   const cueCods = [...new Set(solicitudes.map(s => s.CueCod).filter(Boolean))];
+ 
+   let cancel = false;
+   (async () => {
+     const entries = await Promise.all(
+       cueCods.map(async (cueCod) => {
+         try {
+           const r = await validarBiblioteca(cueCod);
+           const estado = r.ok ? (r.tienePendientes ? "PDT" : "OK") : undefined;
+           return [cueCod, estado];
+         } catch {
+           return [cueCod, undefined];
+         }
+       })
+     );
+     if (!cancel) setBibliotecaMap(Object.fromEntries(entries));
+   })();
+   return () => { cancel = true; };
+ }, [solicitudes]);
 
  const handleSearch = (e) => setBusqueda(e.target.value.toLowerCase());
 
@@ -274,6 +302,7 @@ function Home() {
         busqueda={busqueda}
         cargando={cargando}
         onVerDetalle={abrirDetalle}
+        bibliotecaMap={bibliotecaMap}
       />
 
       {/* Modal detalle (memoizado en DetalleWrapper) */}

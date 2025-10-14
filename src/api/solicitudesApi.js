@@ -112,3 +112,27 @@ export async function actualizarEstadoSolicitud(payload) {
     return { status: "ER", message: error.message };
   }
 }
+
+
+export async function validarBiblioteca(cueCod) {
+  try {
+    const { data } = await axios.get(
+      `${API_BASE}asolicitud_documentos/validar_biblioteca.php`,
+      { params: { CueCod: cueCod } }
+    );
+
+    if (data.status === "OK") {
+      return {
+        ok: true,
+        identidad: data.identidad,
+        tienePendientes: data.tienePendientes,
+        libros: data.libros,
+      };
+    } else {
+      return { ok: false, message: data.message };
+    }
+  } catch (error) {
+    console.error("Error al validar Biblioteca:", error);
+    return { ok: false, message: error.message };
+  }
+}
