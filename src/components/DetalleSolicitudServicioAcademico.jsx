@@ -289,7 +289,7 @@ export default function DetalleSolicitudServicioAcademico({
 
           {/* Dependencias */}
           <Stack direction="row" spacing={3} justifyContent="center" alignItems="center" flexWrap="wrap">
-            <Stack direction="row" spacing={1}><Typography><b>Becas</b></Typography><ChipSemaforo valor={s?.BecNom} label="Biblioteca"  /></Stack>
+            <Stack direction="row" spacing={1}><Typography><b>Becas</b></Typography><ChipSemaforo valor={s?.BecNom}  /></Stack>
             <Stack direction="row" spacing={1}><Typography><b>Contabilidad</b></Typography><ChipSemaforo valor={s?.EstCont} /></Stack>
             <Stack direction="row" spacing={1}><Typography><b>Biblioteca</b></Typography><ChipSemaforo valor={estadoBiblioteca} /></Stack>
             <Stack direction="row" spacing={1}><Typography><b>Registro</b></Typography><ChipSemaforo valor={s?.EstReg} /></Stack>
