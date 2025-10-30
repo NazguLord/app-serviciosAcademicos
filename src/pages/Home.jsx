@@ -49,7 +49,7 @@ const mapearSolicitudes = (datos = []) =>
     BecNom: item.estadobeca || "-",
     DocEstRaw: String(item.DocEst || "").trim().toUpperCase(),
     EstNom: traducirEstado(item.DocEst),
-    CueMailIns: item.CueMailIns || "-",
+    CueMail: item.CueMail || "-",
     CueTel: item.CueTel || "-",
     PlaNomEsp: item.PlaNomEsp || "-",
     DocLeng: item.DocLeng || "-",

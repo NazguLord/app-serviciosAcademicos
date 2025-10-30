@@ -1,33 +1,20 @@
 // src/components/ModalPagoDocumento.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
   Typography,
-  Box,
   CircularProgress,
 } from "@mui/material";
-import { Formik, Form } from "formik";
-import * as Yup from "yup";
 import Swal from "sweetalert2";
 import { autorizarSolicitud } from "../api/solicitudesApi";
 
-const validationSchema = Yup.object({
-  paginas: Yup.number()
-    .required("El número de páginas es requerido")
-    .min(1, "Debe ser al menos 1 página")
-    .integer("Debe ser un número entero"),
-  valor: Yup.number()
-    .required("El valor es requerido")
-    .min(1, "Debe ser mayor a 0")
-    .integer("Debe ser un número entero"),
-});
-
 export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud }) {
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     return () => {
       if (document.activeElement instanceof HTMLElement) {
@@ -41,6 +28,59 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
     onClose();
   };
 
+  const handleAutorizar = async () => {
+    try {
+      setLoading(true);
+      document.activeElement?.blur();
+      handleClose();
+
+      setTimeout(async () => {
+        Swal.fire({
+          title: "Autorizando pago...",
+          text: "Por favor espere",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        const payload = {
+          DocCod: solicitud.DocCod,
+          estadoreg: solicitud.estadoreg ?? "",
+          estadocont: solicitud.estadocont ?? "",
+          estadocond: solicitud.estadocond ?? "",
+        };
+
+        const resp = await autorizarSolicitud(payload);
+
+        if (resp?.status === "OK") {
+          Swal.fire({
+            icon: "success",
+            title: "Pago autorizado",
+            text: "El documento fue autorizado correctamente. El interesado podrá proceder con el pago.",
+            timer: 2500,
+            showConfirmButton: false,
+          });
+          onSubmit?.();
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: resp?.payload?.message || "No se pudo autorizar el pago",
+          });
+        }
+      }, 0);
+    } catch (err) {
+      console.error("Error al autorizar:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Ocurrió un error al autorizar el pago",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Dialog
       open={open}
@@ -51,130 +91,33 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
       disableRestoreFocus
     >
       <DialogTitle sx={{ fontWeight: "bold", color: "primary.main" }}>
-        Autorizar documento
+        Autorizar el pago de documento solicitado
       </DialogTitle>
 
-      <Formik
-        initialValues={{
-          paginas: solicitud?.DocPages || "",
-          valor: solicitud?.DocVal || "",
-        }}
-        validationSchema={validationSchema}
-        onSubmit={async (values, helpers) => {
-          try {
-            document.activeElement?.blur();
+      <DialogContent dividers>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          ¿Está seguro que desea autorizar el pago de la solicitud de este documento?
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Al autorizar el pago, el interesado será notificado para que realice el pago del servicio
+          solicitado y pueda proceder a cancelarlo.
+        </Typography>
+      </DialogContent>
 
-            const payload = {
-              DocCod: solicitud.DocCod,
-              DocPages: values.paginas,
-              DocVal: values.valor,
-              estadoreg: solicitud.estadoreg ?? "",
-              estadocont: solicitud.estadocont ?? "",
-              estadocond: solicitud.estadocond ?? "",
-            };
-
-            // 🔹 Cerramos primero el modal
-            handleClose();
-
-            // 🔹 Luego abrimos Swal en el siguiente tick
-            setTimeout(async () => {
-              Swal.fire({
-                title: "Autorizando...",
-                text: "Por favor espere",
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                didOpen: () => Swal.showLoading(),
-                willClose: () => {
-                  document.activeElement?.blur();
-                  const root = document.getElementById("root");
-                  root?.removeAttribute("aria-hidden");
-                },
-              });
-
-              const resp = await autorizarSolicitud(payload);
-
-              if (resp?.status === "OK") {
-                Swal.fire({
-                  icon: "success",
-                  title: "Éxito",
-                  text: "El documento fue autorizado correctamente",
-                  timer: 2000,
-                  showConfirmButton: false,
-                });
-
-                onSubmit?.(); // refrescar grilla
-              } else {
-                Swal.fire({
-                  icon: "error",
-                  title: "Error",
-                  text: resp?.payload?.message || "No se pudo autorizar",
-                });
-              }
-            }, 0);
-          } catch (err) {
-            console.error("Error al autorizar:", err);
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: "Ocurrió un error al autorizar",
-            });
-          } finally {
-            helpers.setSubmitting(false);
-          }
-        }}
-      >
-        {({ values, errors, touched, handleChange, isSubmitting }) => (
-          <Form>
-            <DialogContent dividers>
-              <Typography variant="body2" sx={{ mb: 2 }}>
-                ¿Está seguro que desea autorizar la solicitud de documento? <br />
-                <strong>
-                  (EL SOLICITANTE NO ESTÁ SOLVENTE EN UNO O MÁS DEPARTAMENTOS).
-                </strong>
-              </Typography>
-
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <TextField
-                  label="Páginas del documento"
-                  name="paginas"
-                  value={values.paginas}
-                  onChange={handleChange}
-                  error={touched.paginas && Boolean(errors.paginas)}
-                  helperText={touched.paginas && errors.paginas}
-                  fullWidth
-                  type="number"
-                />
-
-                <TextField
-                  label="Valor del documento"
-                  name="valor"
-                  value={values.valor}
-                  onChange={handleChange}
-                  error={touched.valor && Boolean(errors.valor)}
-                  helperText={touched.valor && errors.valor}
-                  fullWidth
-                  type="number"
-                />
-              </Box>
-            </DialogContent>
-
-            <DialogActions>
-              <Button onClick={handleClose}>Cancelar</Button>
-              <Button
-                type="submit"
-                variant="contained"
-                color="success"
-                disabled={isSubmitting}
-                startIcon={
-                  isSubmitting ? <CircularProgress size={20} color="inherit" /> : null
-                }
-              >
-                {isSubmitting ? "Guardando..." : "Guardar"}
-              </Button>
-            </DialogActions>
-          </Form>
-        )}
-      </Formik>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={loading}>
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleAutorizar}
+          variant="contained"
+          color="success"
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+        >
+          {loading ? "Procesando..." : "Confirmar"}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

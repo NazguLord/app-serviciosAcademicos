@@ -13,6 +13,7 @@ import TimelineIcon from "@mui/icons-material/Timeline";
 import CloseIcon from "@mui/icons-material/Close";
 import Swal from "sweetalert2";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import HorizontalRuleRoundedIcon from "@mui/icons-material/HorizontalRuleRounded";
 
 import ModalDenegarSolicitud from "../components/ModalDenegarSolicitud";
 import ModalAutorizarPago from "../components/ModalPagoDocumento";
@@ -22,7 +23,11 @@ import { Document, Page, pdfjs } from "react-pdf";
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 import { validarBiblioteca } from "../api/solicitudesApi";
+import ModalAdjuntarDocumentoServicioAcademico from "../components/ModalAdjuntarDocumentoServicioAcademico";
+
 const HistorialTimeline = lazy(() => import("../components/HistorialTimeline"));
+import VisualizarDocumentoFinalServicio from "../components/VisualizarDocumentoFinalServicio";
+
 
 /* ---------- helpers ---------- */
 const formatFechaSoloDia = (input) => {
@@ -44,21 +49,38 @@ const estadoColorLocal = (theme, nombre = "") => {
 const ChipSemaforo = React.memo(function ChipSemaforo({ valor }) {
   const theme = useTheme();
   const v = String(valor ?? "").trim().toUpperCase();
-  const ok = v === "OK";
-  const pdt = v === "PDT" || v === "PDTP";
-  const color = ok
-    ? theme.palette.success.main
-    : pdt
-    ? theme.palette.error.main
-    : theme.palette.text.secondary;
+
+  let color = theme.palette.warning.main;
+  let icon = <HorizontalRuleRoundedIcon />;
+  let label = "Pendiente";
+
+  if (v === "OK" || v === "SOLVENTE") {
+    color = theme.palette.success.main;
+    icon = <CheckCircleRoundedIcon />;
+    label = "Solvente";
+  } else if (v === "INSOLVENTE") {
+    color = theme.palette.error.main;
+    icon = <CancelRoundedIcon />;
+    label = "Insolvente";
+  } else if (v === "PDT" || v === "PENDIENTE") {
+    color = theme.palette.warning.main;
+    icon = <HorizontalRuleRoundedIcon />;
+    label = "Pendiente";
+  }
 
   return (
     <Chip
       size="small"
       variant="outlined"
-      icon={ok ? <CheckCircleRoundedIcon /> : <CancelRoundedIcon />}
-      label={v || "-"}
-      sx={{ color, borderColor: color, fontWeight: 700, height: 28 }}
+      icon={icon}
+      label={label}
+      sx={{
+        color,
+        borderColor: color,
+        fontWeight: 700,
+        height: 28,
+        bgcolor: alpha(color, 0.08),
+      }}
     />
   );
 });
@@ -72,6 +94,7 @@ export default function DetalleSolicitudServicioAcademico({
   onUpdate,
 }) {
   const theme = useTheme();
+   const s = solicitud; // se usa después
 
   // ⚙️ Hooks siempre deben declararse ANTES de cualquier return condicional
   const [openDenegar, setOpenDenegar] = useState(false);
@@ -88,9 +111,12 @@ export default function DetalleSolicitudServicioAcademico({
   const [documentos, setDocumentos] = useState([]);
   const [cargandoDocs, setCargandoDocs] = useState(false);
   const [estadoBiblioteca, setEstadoBiblioteca] = useState(null);
+  const [openAdjuntar, setOpenAdjuntar] = useState(false);
+  const [estadoDocLocal, setEstadoDocLocal] = useState(s?.DocEst || "");
+  const [etiquetaEstado, setEtiquetaEstado] = useState(s?.EstNom || "");
 
-  const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
-  const s = solicitud; // se usa después
+  const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";  
+ 
 
   useEffect(() => {
   if (!solicitud?.CueCod) return;
@@ -107,6 +133,11 @@ export default function DetalleSolicitudServicioAcademico({
 
   verificarBiblioteca();
 }, [solicitud?.CueCod]);
+
+useEffect(() => {
+  setEstadoDocLocal(s?.DocEst || "");
+  setEtiquetaEstado(s?.EstNom || "");
+}, [s?.DocCod]);
 
   /* ✅ Traer documentos al abrir el modal */
   useEffect(() => {
@@ -171,6 +202,8 @@ export default function DetalleSolicitudServicioAcademico({
 }, [open, s]);
 
   // ⚠️ Este return puede ir tranquilo después de los hooks
+   console.log("🧠 Datos de solicitud:", s);
+   console.log("📄 Valor real de DocEst:", s?.EstNom );
   if (!s) return null;
 
   const puedeDenegar = String(s?.EstNom || "").toLowerCase().startsWith("pendient");
@@ -259,10 +292,10 @@ export default function DetalleSolicitudServicioAcademico({
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 4 }}>
           <Typography variant="h6" fontWeight={700}>Detalle de solicitud</Typography>
           <Chip
-            label={s?.EstNom || "-"}
+            label={etiquetaEstado|| "-"}
             sx={{
-              bgcolor: alpha(estadoColorLocal(theme, s?.EstNom || ""), 0.12),
-              color: estadoColorLocal(theme, s?.EstNom || ""),
+              bgcolor: alpha(estadoColorLocal(theme, etiquetaEstado || ""), 0.12),
+              color: estadoColorLocal(theme, etiquetaEstado || ""),
               fontWeight: 700,
             }}
           />
@@ -273,6 +306,7 @@ export default function DetalleSolicitudServicioAcademico({
       </DialogTitle>
 
       <DialogContent dividers>
+       
         <Stack spacing={2}>
           {/* Datos principales */}
           <Grid container spacing={2}>
@@ -281,7 +315,7 @@ export default function DetalleSolicitudServicioAcademico({
             <Grid item xs={12} sm={6}><Typography fontWeight={700}>Carrera / Plan:</Typography><Typography>{s?.PlaNomEsp || "-"}</Typography></Grid>
             <Grid item xs={12} sm={6}><Typography fontWeight={700}>Teléfono:</Typography><Typography>{s?.CueTel || "-"}</Typography></Grid>
             <Grid item xs={12} sm={6}><Typography fontWeight={700}>Documento:</Typography><Typography>{s?.DocNom || "-"}{s?.DocLeng && ` (${s.DocLeng})`}</Typography></Grid>
-            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Correo institucional:</Typography><Typography>{s?.CueMailIns && s.CueMailIns !== "-" ? <a href={`mailto:${s.CueMailIns}`}>{s.CueMailIns}</a> : "-"}</Typography></Grid>
+            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Correo:</Typography><Typography>{s?.CueMail && s.CueMail !== "-" ? <a href={`mailto:${s.CueMail}`}>{s.CueMail}</a> : "-"}</Typography></Grid>
             <Grid item xs={12} sm={6}><Typography fontWeight={700}>Fecha de solicitud:</Typography>{formatFechaSoloDia(s?.DocFchCre)}</Grid>
           </Grid>
 
@@ -362,6 +396,11 @@ export default function DetalleSolicitudServicioAcademico({
   </Box>
 </Box>
 
+{/* ✅ Mostrar documento final solo si el estado es “En proceso de entrega” */}
+{String(etiquetaEstado || "").trim().toUpperCase() === "EN PROCESO DE ENTREGA" && (
+  <VisualizarDocumentoFinalServicio docCod={s?.DocCod} />
+)}
+
 {/* Modal visor de documento */}
 {visorArchivo?.abierto && (
   <Dialog
@@ -440,28 +479,42 @@ export default function DetalleSolicitudServicioAcademico({
 
       <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
         <Box sx={{ flex: 1 }} />
-        <Button variant="outlined" startIcon={<TimelineIcon />} onClick={() => setOpenHist(true)}>Ver historial</Button>
+        <Button variant="outlined" startIcon={<TimelineIcon />} onClick={() => setOpenHist(true)}>Vitacora de acciones</Button>
         {String(s?.EstNom || "").toLowerCase() === "pendiente de pago" && (
           <Button variant="contained" color="primary" onClick={() => setOpenComprobante(true)}>Pagar</Button>
         )}
         {/* ✅ Nuevo botón de “Marcar como OK (Registro)” */}
-  {mostrarBotonRegistro && (
-    <Button
-      variant="contained"
-      color="success"
-      sx={{ fontWeight: 700 }}
-      onClick={() => handleActualizarChip("REGISTRO", "OK")}
-    >
+         {mostrarBotonRegistro && (
+        <Button
+         variant="contained"
+         color="success"
+         sx={{ fontWeight: 700 }}
+        onClick={() => handleActualizarChip("REGISTRO", "OK")}
+         >
       Registro OK
     </Button>
   )}
         {puedeAutorizar && (
-          <Button variant="outlined" color="success" onClick={() => setOpenAutorizar(true)}>Autorizar Pago</Button>
+          <Button variant="outlined" color="success" onClick={() => setOpenAutorizar(true)}>Proceder pago</Button>
         )}
         {puedeDenegar && (
           <Button variant="outlined" color="error" onClick={() => setOpenDenegar(true)}>Denegar</Button>
         )}
-        <Button onClick={safeClose}>Cerrar</Button>
+        {/* ✅ Mostrar botón solo si el estado actual es "En proceso" (PGD) */}
+{["PGD", "EN PROCESO"].includes(
+  String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
+) && (
+  <Button
+    variant="contained"
+    color="primary"
+    sx={{ fontWeight: 700 }}
+    onClick={() => setOpenAdjuntar(true)}
+  >
+    Adjuntar documento final
+  </Button>
+)}
+<Button onClick={safeClose}>Cerrar</Button>  
+
       </DialogActions>
 
       {/* Modales secundarios */}
@@ -490,7 +543,21 @@ export default function DetalleSolicitudServicioAcademico({
       {openComprobante && (
         <ModalAdjuntarComprobante open={openComprobante} solicitud={s} onClose={() => setOpenComprobante(false)} />
       )}
-
+ {/* ✅ Modal para adjuntar documento final */}
+{openAdjuntar && (
+  <ModalAdjuntarDocumentoServicioAcademico
+    open={openAdjuntar}
+    onClose={() => setOpenAdjuntar(false)}
+    solicitud={s}
+    onUpdate={onUpdate}
+    onSuccess={() => {
+    // actualiza el chip y oculta el botón sin recargar todo
+    setEstadoDocLocal("CMP");
+    setEtiquetaEstado("En proceso de entrega");
+     setOpenAdjuntar(false);
+  }}
+  />
+)}
       {/* Historial */}
       <Dialog open={openHist} onClose={() => setTimeout(() => setOpenHist(false), 0)} fullWidth maxWidth="md" disableRestoreFocus disableEnforceFocus>
         <DialogTitle sx={{ textAlign: "center", fontWeight: 700, fontSize: "1.25rem", borderBottom: "1px solid", borderColor: theme.palette.divider }}>
@@ -509,6 +576,8 @@ export default function DetalleSolicitudServicioAcademico({
           )}
         </DialogContent>
       </Dialog>
+
+      
     </Dialog>
   );
 }

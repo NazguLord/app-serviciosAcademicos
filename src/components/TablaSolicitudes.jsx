@@ -34,14 +34,45 @@ const TablaSolicitudes = ({
     return theme.palette.text.secondary;
   };
 
-  const renderCheck = (value) => {
-    const v = String(value ?? "").trim().toUpperCase();
-    const isOK = v === "OK";
-    const isPDT = v === "PDT" || v === "PDTP";
-    if (isOK) return <CheckCircleRoundedIcon sx={{ fontSize: 18, color: theme.palette.success.main }} />;
-    if (isPDT) return <CancelRoundedIcon sx={{ fontSize: 18, color: theme.palette.error.main }} />;
-    return <HorizontalRuleRoundedIcon sx={{ fontSize: 18, color: theme.palette.text.disabled }} />;
-  };
+ const renderCheck = (value) => {
+  const v = String(value ?? "").trim().toUpperCase();
+
+  if (v === "OK" || v === "SOLVENTE") {
+    return (
+      <Tooltip title="Solvente">
+        <CheckCircleRoundedIcon
+          sx={{ fontSize: 20, color: theme.palette.success.main }}
+        />
+      </Tooltip>
+    );
+  }
+
+  if (v === "INSOLVENTE") {
+    return (
+      <Tooltip title="Insolvente">
+        <CancelRoundedIcon
+          sx={{ fontSize: 20, color: theme.palette.error.main }}
+        />
+      </Tooltip>
+    );
+  }
+
+  if (v === "PDT" || v === "PENDIENTE") {
+    return (
+      <Tooltip title="Pendiente">
+        <HorizontalRuleRoundedIcon
+          sx={{ fontSize: 20, color: theme.palette.warning.main }}
+        />
+      </Tooltip>
+    );
+  }
+
+  return (
+    <HorizontalRuleRoundedIcon
+      sx={{ fontSize: 20, color: theme.palette.text.disabled }}
+    />
+  );
+};
 
   const renderEllipsis = (text) => (
     <span
