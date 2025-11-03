@@ -11,6 +11,9 @@ import {
 } from "@mui/material";
 import Swal from "sweetalert2";
 import { autorizarSolicitud } from "../api/solicitudesApi";
+import axios from "axios";
+
+const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
 
 export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud }) {
   const [loading, setLoading] = useState(false);
@@ -22,6 +25,40 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
       }
     };
   }, []);
+
+  async function enviarCorreo(tipo, correo) {
+    try {
+      if (!Array.isArray(correo) || correo.length === 0) {
+        console.warn("No hay correos válidos.");
+        return;
+      }
+
+      for (const c of correo) {
+        const correoDestino = typeof c === "string" ? c : c.correo;
+
+        const payload = {
+          tipo,
+          correo: correoDestino
+        };
+
+        const url = `${BASE_URL}/api/asolicitud_documentos/enviarCorreo.php`;
+
+        const res = await axios.post(url, payload, {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true
+        });
+
+        if (res.data?.success) {
+          console.log(`Correo enviado correctamente a ${correoDestino}`);
+        } else {
+          console.warn(`No se pudo enviar el correo a ${correoDestino}:`, res.data);
+        }
+      }
+
+    } catch (error) {
+      console.error("Error al enviar correos:", error);
+    }
+  }
 
   const handleClose = () => {
     document.activeElement?.blur();
@@ -61,6 +98,7 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
             showConfirmButton: false,
           });
           onSubmit?.();
+          enviarCorreo("autorizado_pago_alumno", [solicitud.CueMail])
         } else {
           Swal.fire({
             icon: "error",

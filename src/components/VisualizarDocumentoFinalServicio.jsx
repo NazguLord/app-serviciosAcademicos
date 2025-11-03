@@ -1,5 +1,7 @@
+// src/components/VisualizarDocumentoFinalServicio.jsx
 import React, { useEffect, useState } from "react";
 import { Box, Typography, Button, CircularProgress } from "@mui/material";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import axios from "axios";
 
@@ -14,7 +16,9 @@ export default function VisualizarDocumentoFinalServicio({ docCod }) {
 
     const fetchArchivo = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/api/asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${docCod}`);
+        const res = await axios.get(
+          `${BASE_URL}/api/asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${docCod}`
+        );
         if (res.data.success && res.data.data) {
           setArchivo(res.data.data);
         }
@@ -40,38 +44,62 @@ export default function VisualizarDocumentoFinalServicio({ docCod }) {
   const rutaCompleta = `${BASE_URL}${archivo.DocPath}`;
 
   return (
+  <Box
+    sx={{
+      mt: 2,
+      width: "75%", // mismo ancho que los documentos adjuntos
+      mx: "auto",
+      pl: { xs: 0, sm: 5, md: 9, lg: 13.5 }, // 👈 mueve todo el contenido hacia la derecha
+      display: "flex",
+      justifyContent: "flex-start",
+    }}
+  >
     <Box
       sx={{
         border: "1px solid #ddd",
         borderRadius: 2,
-        p: 3,
-        textAlign: "center",
-        mt: 2,
+        p: 2,
         bgcolor: "#fafafa",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 1,
+        width: "320px",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
       }}
     >
-      <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-        Servicio Académico a entregar
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <DescriptionOutlinedIcon sx={{ color: "#1976d2", fontSize: 26 }} />
+        <Typography
+          variant="subtitle1"
+          fontWeight={700}
+          sx={{ color: "#333", fontSize: "0.95rem" }}
+        >
+          Servicio Académico a entregar
+        </Typography>
+      </Box>
 
       <Button
-        variant="contained"
-        color="inherit"
+        variant="contained"        
+        color="success"
         href={rutaCompleta}
         target="_blank"
         rel="noopener noreferrer"
         startIcon={<VisibilityIcon />}
         sx={{
-          fontWeight: 700,
-          bgcolor: "#000",
+          fontWeight: 700,         
           color: "#fff",
-          px: 3,
-          "&:hover": { bgcolor: "#222" },
+          px: 2.5,
+          py: 0.6,
+          mt: 0.5,
+          borderRadius: "8px",
+          fontSize: "0.85rem",
+          "&:hover": { bgcolor: "#1976d2" },
         }}
       >
         Ver documento
       </Button>
     </Box>
-  );
+  </Box>
+);
 }

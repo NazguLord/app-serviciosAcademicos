@@ -1,10 +1,7 @@
 // src/components/DetalleSolicitudServicioAcademico.jsx
 import React, { useState, useEffect, lazy, Suspense } from "react";
-import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Typography, Chip, Stack, Grid, Divider,
-  IconButton, Button, DialogContentText, CircularProgress
-} from "@mui/material";
+import {  Dialog, DialogTitle, DialogContent, DialogActions,  Box, Typography, Chip, Stack, Grid, Divider,
+  IconButton, Button, DialogContentText, CircularProgress } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -27,6 +24,7 @@ import ModalAdjuntarDocumentoServicioAcademico from "../components/ModalAdjuntar
 
 const HistorialTimeline = lazy(() => import("../components/HistorialTimeline"));
 import VisualizarDocumentoFinalServicio from "../components/VisualizarDocumentoFinalServicio";
+import ModalEntregaDocumentoServicioFinal from "../components/ModalEntregaDocumentoServicioFinal";
 
 
 /* ---------- helpers ---------- */
@@ -114,6 +112,8 @@ export default function DetalleSolicitudServicioAcademico({
   const [openAdjuntar, setOpenAdjuntar] = useState(false);
   const [estadoDocLocal, setEstadoDocLocal] = useState(s?.DocEst || "");
   const [etiquetaEstado, setEtiquetaEstado] = useState(s?.EstNom || "");
+  const [openEntrega, setOpenEntrega] = useState(false);
+  const [docFinal, setDocFinal] = useState(null);
 
   const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";  
  
@@ -148,6 +148,7 @@ useEffect(() => {
     console.log("DocCod:", s?.DocCod);
     console.log("DocReg:", s?.DocReg);
 
+    
     const fetchDocs = async () => {
       setCargandoDocs(true);
       try {
@@ -200,6 +201,29 @@ useEffect(() => {
     fetchDocs();
   }
 }, [open, s]);
+
+
+useEffect(() => {
+  if (!s?.DocCod || !["FIN", "ENTREGADO"].includes(String(etiquetaEstado || "").trim().toUpperCase())) return;
+
+  const fetchDocFinal = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${s.DocCod}`);
+      const data = await res.json();
+
+      if (data.success && data.data) {
+        setDocFinal(data.data);
+        console.log("📄 Documento final cargado:", data.data);
+      } else {
+        console.warn("⚠️ No se encontró documento final:", data);
+      }
+    } catch (error) {
+      console.error("Error al obtener documento final:", error);
+    }
+  };
+
+  fetchDocFinal();
+}, [s?.DocCod, etiquetaEstado]);
 
   // ⚠️ Este return puede ir tranquilo después de los hooks
    console.log("🧠 Datos de solicitud:", s);
@@ -401,6 +425,112 @@ useEffect(() => {
   <VisualizarDocumentoFinalServicio docCod={s?.DocCod} />
 )}
 
+{/* Bloque “Servicio Académico entregado” */}
+{["FIN", "ENTREGADO"].includes(String(etiquetaEstado || "").trim().toUpperCase()) && (
+  <Box
+    sx={{
+      mt: 3,
+      width: "75%",
+      mx: "auto",
+      display: "flex",
+      justifyContent: "flex-start",
+      pl: 13.5, // 👈 conserva tu alineación derecha
+    }}
+  >
+    <Box
+      sx={{
+        p: 2.5,
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.default",
+        boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
+        minWidth: 380,
+      }}
+    >
+      {/* Encabezado */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          mb: 1,
+        }}
+      >
+        <CheckCircleRoundedIcon sx={{ color: "success.main" }} />
+        <Typography
+          variant="subtitle1"
+          fontWeight="bold"
+          color="success.main"
+        >
+          Servicio Académico entregado
+        </Typography>
+      </Box>
+
+      {/* Comentario */}
+      {docFinal?.ComentarioServicioEntregado ? (
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.primary",
+            lineHeight: 1.5,
+            mb: 2,
+            whiteSpace: "pre-line",
+            textAlign: "left",
+          }}
+        >
+          <strong style={{ color: "#2e7d32" }}>Comentario de entrega:</strong>{" "}
+          {docFinal.ComentarioServicioEntregado}
+        </Typography>
+      ) : (
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            fontStyle: "italic",
+            mb: 2,
+            textAlign: "center",
+          }}
+        >
+          No se agregó comentario de entrega.
+        </Typography>
+      )}
+
+      <Divider sx={{ mb: 2 }} />
+
+      {/* Botón */}
+      <Box sx={{ textAlign: "center" }}>
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={<VisibilityIcon />}
+          onClick={() => {
+            if (docFinal?.DocPath) {
+              window.open(`${BASE_URL}${docFinal.DocPath}`, "_blank", "noopener,noreferrer");
+            } else {
+              Swal.fire({
+                icon: "warning",
+                title: "Documento no disponible",
+                text: "No se encontró el archivo final para esta solicitud.",
+                confirmButtonText: "Entendido",
+              });
+            }
+          }}
+          sx={{
+            fontWeight: 700,
+            px: 3,
+            py: 0.8,
+            borderRadius: 1.5,
+            boxShadow: "none",
+          }}
+        >
+          Ver documento
+        </Button>
+      </Box>
+    </Box>
+  </Box>
+)}
+
 {/* Modal visor de documento */}
 {visorArchivo?.abierto && (
   <Dialog
@@ -513,6 +643,19 @@ useEffect(() => {
     Adjuntar documento final
   </Button>
 )}
+{/* ✅ Mostrar botón solo si el estado actual es "En proceso de entrega" (CMP) */}
+{["CMP", "EN PROCESO DE ENTREGA"].includes(
+  String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
+) && (
+  <Button
+    variant="contained"
+    color="success"
+    sx={{ fontWeight: 700 }}
+    onClick={() => setOpenEntrega(true)}
+  >
+    Marcar como entregado
+  </Button>
+)}
 <Button onClick={safeClose}>Cerrar</Button>  
 
       </DialogActions>
@@ -577,6 +720,35 @@ useEffect(() => {
         </DialogContent>
       </Dialog>
 
+       {/* ✅ Modal para confirmar entrega física del documento */}
+{openEntrega && (
+  <ModalEntregaDocumentoServicioFinal
+    open={openEntrega}
+    onClose={() => setOpenEntrega(false)}
+    solicitud={s}
+    onEntregado={() => {
+      setOpenEntrega(false);
+      setEstadoDocLocal("FIN");
+      setEtiquetaEstado("Entregado");
+
+      // 🔹 Refrescar tabla principal o mover a pestaña “Completados”
+      if (onUpdate) onUpdate();
+
+      // 🔹 Confirmación visual rápida
+      Swal.fire({
+        icon: "success",
+        title: "Entrega confirmada",
+        text: "El documento ha sido marcado como entregado.",
+        timer: 1800,
+        showConfirmButton: false,
+        didOpen: () => {
+          const swalContainer = document.querySelector(".swal2-container");
+          if (swalContainer) swalContainer.style.zIndex = 20000;
+        },
+      });
+    }}
+  />
+)}     
       
     </Dialog>
   );

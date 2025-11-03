@@ -38,6 +38,52 @@ export default function ModalAdjuntarDocumentoServicioAcademico({
       ),
   });
 
+  async function enviarCorreo(tipo, correo, adjuntoBase64, adjuntoNombre) {
+    try {
+      if (!Array.isArray(correo) || correo.length === 0) {
+        console.warn("No hay correos válidos.");
+        return;
+      }
+
+      for (const c of correo) {
+        const correoDestino = typeof c === "string" ? c : c.correo;
+
+        const payload = {
+          tipo,
+          correo: correoDestino,
+          adjuntoBase64,
+          adjuntoNombre
+        };
+
+        const url = `${BASE_URL}/api/asolicitud_documentos/enviarCorreo.php`;
+
+        const res = await axios.post(url, payload, {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true
+        });
+
+        if (res.data?.success) {
+          console.log(`Correo enviado correctamente a ${correoDestino}`);
+        } else {
+          console.warn(`No se pudo enviar el correo a ${correoDestino}:`, res.data);
+        }
+      }
+
+    } catch (error) {
+      console.error("Error al enviar correos:", error);
+    }
+  }
+
+
+  function convertirArchivoABase64(archivo) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(archivo);
+    });
+  }
+
   const handleSubmit = async (values, { resetForm }) => {
     const formData = new FormData();
     formData.append("archivo", values.archivo);
@@ -47,6 +93,11 @@ export default function ModalAdjuntarDocumentoServicioAcademico({
 
     try {
       setSubiendo(true);
+      let adjuntoBase64 = await convertirArchivoABase64(values.archivo);
+      let adjuntoNombre = values.archivo.name;
+
+      enviarCorreo("documento_enviado_campus", [solicitud.CueMail], adjuntoBase64, adjuntoNombre)
+
 
       const res = await axios.post(
         `${BASE_URL}/api/asolicitud_documentos/subirDocumentoFinal.php`,
@@ -59,7 +110,7 @@ export default function ModalAdjuntarDocumentoServicioAcademico({
         onUpdate?.();
         onClose?.();
         onSuccess?.();
-        try { resetForm(); } catch {}
+        try { resetForm(); } catch { }
 
         // ✅ Luego mostramos el Swal por encima del Dialog
         setTimeout(() => {
