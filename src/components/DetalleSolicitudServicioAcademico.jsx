@@ -11,21 +11,19 @@ import CloseIcon from "@mui/icons-material/Close";
 import Swal from "sweetalert2";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import HorizontalRuleRoundedIcon from "@mui/icons-material/HorizontalRuleRounded";
-
 import ModalDenegarSolicitud from "../components/ModalDenegarSolicitud";
 import ModalAutorizarPago from "../components/ModalPagoDocumento";
 import ModalAdjuntarComprobante from "../components/ModalAdjuntarComprobante";
-import { actualizarEstadoSolicitud } from "../api/solicitudesApi";
 import { Document, Page, pdfjs } from "react-pdf";
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
 import { validarBiblioteca } from "../api/solicitudesApi";
 import ModalAdjuntarDocumentoServicioAcademico from "../components/ModalAdjuntarDocumentoServicioAcademico";
 
 const HistorialTimeline = lazy(() => import("../components/HistorialTimeline"));
 import VisualizarDocumentoFinalServicio from "../components/VisualizarDocumentoFinalServicio";
 import ModalEntregaDocumentoServicioFinal from "../components/ModalEntregaDocumentoServicioFinal";
-
+import BotonNotificarAlumno from "../components/BotonNotificarAlumno";
+import BotonActualizarRegistro from "../components/BotonActualizarRegistro";
 
 /* ---------- helpers ---------- */
 const formatFechaSoloDia = (input) => {
@@ -114,6 +112,7 @@ export default function DetalleSolicitudServicioAcademico({
   const [etiquetaEstado, setEtiquetaEstado] = useState(s?.EstNom || "");
   const [openEntrega, setOpenEntrega] = useState(false);
   const [docFinal, setDocFinal] = useState(null);
+  const [notificado, setNotificado] = useState(false);
 
   const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";  
  
@@ -240,55 +239,6 @@ useEffect(() => {
     setTimeout(() => onClose?.(), 0);
   };
 
-  /* ✅ Función para actualizar el chip de dependencia */
-  const handleActualizarChip = async (dependencia, valor) => {
-    try {
-      const payload = {
-        DocCod: s?.DocCod,
-        Dependencia: dependencia,
-        Estado: valor,
-      };
-
-      const resp = await actualizarEstadoSolicitud(payload);
-
-      if (resp?.status === "OK") {
-        await Swal.fire({
-          icon: "success",
-          title: `Estado de ${dependencia} actualizado a ${valor}`,
-          timer: 1500,
-          showConfirmButton: false,
-           didOpen: () => {
-          const swalContainer = document.querySelector(".swal2-container");
-          if (swalContainer) swalContainer.style.zIndex = 20000; // 👈 para que quede arriba
-        },
-        });
-         if (dependencia === "REGISTRO") s.EstReg = valor;
-         if (dependencia === "BECAS") s.BecNom = valor;
-        onUpdate?.();
-      } else {
-        Swal.fire({
-        icon: "error",
-        title: "Error al actualizar estado",
-        text: resp?.message || "No se pudo completar la acción",
-        didOpen: () => {
-          const swalContainer = document.querySelector(".swal2-container");
-          if (swalContainer) swalContainer.style.zIndex = 20000;
-         },
-        });
-      }
-    } catch (error) {
-      console.error("Error actualizando chip:", error);
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "No se pudo actualizar el estado",
-      didOpen: () => {
-        const swalContainer = document.querySelector(".swal2-container");
-        if (swalContainer) swalContainer.style.zIndex = 20000;
-      },
-     });
-    }
-  };
 
   /* ✅ Verificar si todos los chips están en OK */
   const todosOk =
@@ -342,9 +292,7 @@ useEffect(() => {
             <Grid item xs={12} sm={6}><Typography fontWeight={700}>Correo:</Typography><Typography>{s?.CueMail && s.CueMail !== "-" ? <a href={`mailto:${s.CueMail}`}>{s.CueMail}</a> : "-"}</Typography></Grid>
             <Grid item xs={12} sm={6}><Typography fontWeight={700}>Fecha de solicitud:</Typography>{formatFechaSoloDia(s?.DocFchCre)}</Grid>
           </Grid>
-
           <Divider />
-
           {/* Dependencias */}
           <Stack direction="row" spacing={3} justifyContent="center" alignItems="center" flexWrap="wrap">
             <Stack direction="row" spacing={1}><Typography><b>Becas</b></Typography><ChipSemaforo valor={s?.BecNom}  /></Stack>
@@ -577,8 +525,6 @@ useEffect(() => {
   </Dialog>
 )}
 
-  
-
           {/* Botón global si todos los chips están en OK */}
           {todosOk && (
             <Box sx={{ textAlign: "center", mt: 2 }}>
@@ -615,15 +561,8 @@ useEffect(() => {
         )}
         {/* ✅ Nuevo botón de “Marcar como OK (Registro)” */}
          {mostrarBotonRegistro && (
-        <Button
-         variant="contained"
-         color="success"
-         sx={{ fontWeight: 700 }}
-        onClick={() => handleActualizarChip("REGISTRO", "OK")}
-         >
-      Registro OK
-    </Button>
-  )}
+          <BotonActualizarRegistro solicitud={s} onUpdate={onUpdate} />
+         )}
         {puedeAutorizar && (
           <Button variant="outlined" color="success" onClick={() => setOpenAutorizar(true)}>Proceder pago</Button>
         )}
@@ -647,14 +586,28 @@ useEffect(() => {
 {["CMP", "EN PROCESO DE ENTREGA"].includes(
   String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
 ) && (
-  <Button
-    variant="contained"
-    color="success"
-    sx={{ fontWeight: 700 }}
-    onClick={() => setOpenEntrega(true)}
-  >
-    Marcar como entregado
-  </Button>
+  <>
+    {/* 🔹 Si NO ha sido notificado, mostrar botón azul */}
+    {!notificado && (
+      <BotonNotificarAlumno
+        docCod={s?.DocCod}
+        usrUsr={s?.CueCod} // puedes cambiar por usuario del sistema si aplica
+        onNotificadoChange={setNotificado}
+      />
+    )}
+
+    {/* 🔹 Si ya fue notificado, mostrar botón verde */}
+    {notificado && (
+      <Button
+        variant="contained"
+        color="success"
+        sx={{ fontWeight: 700 }}
+        onClick={() => setOpenEntrega(true)}
+      >
+        Marcar como entregado
+      </Button>
+    )}
+  </>
 )}
 <Button onClick={safeClose}>Cerrar</Button>  
 
@@ -748,8 +701,7 @@ useEffect(() => {
       });
     }}
   />
-)}     
-      
+)}           
     </Dialog>
   );
 }

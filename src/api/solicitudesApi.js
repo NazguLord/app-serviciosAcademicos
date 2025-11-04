@@ -136,3 +136,36 @@ export async function validarBiblioteca(cueCod) {
     return { ok: false, message: error.message };
   }
 }
+
+export const notificarAlumno = async (docCod, usrUsr) => {
+  try {
+    // Usamos FormData para compatibilidad con PHP
+    const body = new FormData();
+    body.append("DocCod", docCod);
+    body.append("UsrUsr", usrUsr);
+
+    const response = await axios.post(
+      `${API_BASE}asolicitud_documentos/notificarAlumno.php`,
+      body,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error al notificar alumno:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+export const verificarNotificacion = async (docCod) => {
+  try {
+    const response = await axios.get(
+      `${API_BASE}asolicitud_documentos/verificarNotificacion.php`,
+      { params: { DocCod: docCod } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("⚠️ Error al verificar notificación:", error);
+    return { notificado: false };
+  }
+};
