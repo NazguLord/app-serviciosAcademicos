@@ -26,7 +26,7 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
     };
   }, []);
 
-  async function enviarCorreo(tipo, correo) {
+  async function enviarCorreo(tipo, correo, docCod) {
     try {
       if (!Array.isArray(correo) || correo.length === 0) {
         console.warn("No hay correos válidos.");
@@ -38,7 +38,8 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
 
         const payload = {
           tipo,
-          correo: correoDestino
+          correo: correoDestino,
+          DocCod: docCod
         };
 
         const url = `${BASE_URL}/api/asolicitud_documentos/enviarCorreo.php`;
@@ -88,6 +89,7 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
         };
 
         const resp = await autorizarSolicitud(payload);
+        let docCodParte = solicitud.DocCod.split('-').pop();
 
         if (resp?.status === "OK") {
           Swal.fire({
@@ -98,7 +100,7 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
             showConfirmButton: false,
           });
           onSubmit?.();
-          enviarCorreo("autorizado_pago_alumno", [solicitud.CueMail])
+          enviarCorreo("autorizado_pago_alumno", [solicitud.CueMail], docCodParte)
         } else {
           Swal.fire({
             icon: "error",

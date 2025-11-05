@@ -590,6 +590,7 @@ useEffect(() => {
     {/* 🔹 Si NO ha sido notificado, mostrar botón azul */}
     {!notificado && (
       <BotonNotificarAlumno
+        solicitud={solicitud}
         docCod={s?.DocCod}
         usrUsr={s?.CueCod} // puedes cambiar por usuario del sistema si aplica
         onNotificadoChange={setNotificado}
