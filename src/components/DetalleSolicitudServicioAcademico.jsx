@@ -1,7 +1,9 @@
 // src/components/DetalleSolicitudServicioAcademico.jsx
 import React, { useState, useEffect, lazy, Suspense } from "react";
-import {  Dialog, DialogTitle, DialogContent, DialogActions,  Box, Typography, Chip, Stack, Grid, Divider,
-  IconButton, Button, DialogContentText, CircularProgress } from "@mui/material";
+import {
+  Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, Chip, Stack, Grid, Divider,
+  IconButton, Button, DialogContentText, CircularProgress
+} from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -24,6 +26,7 @@ import VisualizarDocumentoFinalServicio from "../components/VisualizarDocumentoF
 import ModalEntregaDocumentoServicioFinal from "../components/ModalEntregaDocumentoServicioFinal";
 import BotonNotificarAlumno from "../components/BotonNotificarAlumno";
 import BotonActualizarRegistro from "../components/BotonActualizarRegistro";
+import axios from "axios";
 
 /* ---------- helpers ---------- */
 const formatFechaSoloDia = (input) => {
@@ -90,7 +93,7 @@ export default function DetalleSolicitudServicioAcademico({
   onUpdate,
 }) {
   const theme = useTheme();
-   const s = solicitud; // se usa después
+  const s = solicitud; // se usa después
 
   // ⚙️ Hooks siempre deben declararse ANTES de cualquier return condicional
   const [openDenegar, setOpenDenegar] = useState(false);
@@ -98,11 +101,11 @@ export default function DetalleSolicitudServicioAcademico({
   const [openAutorizar, setOpenAutorizar] = useState(false);
   const [openComprobante, setOpenComprobante] = useState(false);
   const [visorArchivo, setVisorArchivo] = useState({
-  abierto: false,
-  nombre: "",
-  ruta: "",
-  esPdf: false,
-});
+    abierto: false,
+    nombre: "",
+    ruta: "",
+    esPdf: false,
+  });
 
   const [documentos, setDocumentos] = useState([]);
   const [cargandoDocs, setCargandoDocs] = useState(false);
@@ -114,123 +117,130 @@ export default function DetalleSolicitudServicioAcademico({
   const [docFinal, setDocFinal] = useState(null);
   const [notificado, setNotificado] = useState(false);
 
-  const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";  
- 
+  const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
+
 
   useEffect(() => {
-  if (!solicitud?.CueCod) return;
+    if (!solicitud?.CueCod) return;
 
-  async function verificarBiblioteca() {
-    const res = await validarBiblioteca(solicitud.CueCod);
-    if (res.ok) {
-      setEstadoBiblioteca(res.tienePendientes ? "PDT" : "OK");
-      console.log("📚 Resultado Biblioteca:", res);
-    } else {
-      console.error("Error al consultar Biblioteca:", res.message);
+    async function verificarBiblioteca() {
+      const res = await validarBiblioteca(solicitud.CueCod);
+      if (res.ok) {
+        setEstadoBiblioteca(res.tienePendientes ? "PDT" : "OK");
+        console.log("📚 Resultado Biblioteca:", res);
+      } else {
+        console.error("Error al consultar Biblioteca:", res.message);
+      }
     }
-  }
 
-  verificarBiblioteca();
-}, [solicitud?.CueCod]);
+    verificarBiblioteca();
+  }, [solicitud?.CueCod]);
 
-useEffect(() => {
-  setEstadoDocLocal(s?.DocEst || "");
-  setEtiquetaEstado(s?.EstNom || "");
-}, [s?.DocCod]);
+  useEffect(() => {
+    setEstadoDocLocal(s?.DocEst || "");
+    setEtiquetaEstado(s?.EstNom || "");
+  }, [s?.DocCod]);
 
   /* ✅ Traer documentos al abrir el modal */
   useEffect(() => {
-  if (open && s?.CueCod) {
-    console.log("🔍 Datos enviados al endpoint:");
-    console.log("CueCod:", s?.CueCod);
-    console.log("CueReg:", s?.CueReg);
-    console.log("DocCod:", s?.DocCod);
-    console.log("DocReg:", s?.DocReg);
+    if (open && s?.CueCod) {
+      console.log("🔍 Datos enviados al endpoint:");
+      console.log("CueCod:", s?.CueCod);
+      console.log("CueReg:", s?.CueReg);
+      console.log("DocCod:", s?.DocCod);
+      console.log("DocReg:", s?.DocReg);
 
-    
-    const fetchDocs = async () => {
-      setCargandoDocs(true);
-      try {
-        // 🔹 Detectar automáticamente el CueReg correcto
-        let cueRegFinal = s?.CueReg || s?.DocReg || "";
 
-        if (!cueRegFinal && s?.DocCod) {
-          const match = String(s.DocCod).split("-")[0];
-          cueRegFinal = match;
-        }
-
-        if (!cueRegFinal) {
-          console.warn("⚠️ No se encontró ningún identificador válido para CueReg.");
-          setDocumentos([]);
-          setCargandoDocs(false);
-          return;
-        }
-
-        console.log("👉 Usando CueRegFinal:", cueRegFinal);
-
-        const res = await fetch(
-          `${BASE_URL}/api/agestiones/documentos/buscar.php?CueCod=${s.CueCod}&CueReg=${cueRegFinal}&filterslength=0&pagenum=0&pagesize=10&page=0&limit=10`
-        );
-
-        const text = await res.text();
-        let data;
-
+      const fetchDocs = async () => {
+        setCargandoDocs(true);
         try {
-          const clean = text.trim().replace(/^[^{[]+/, "");
-          data = JSON.parse(clean);
-        } catch (parseErr) {
-          console.warn("⚠️ Error al parsear JSON, respuesta cruda:", text);
-          data = { data: [] };
-        }
+          // 🔹 Detectar automáticamente el CueReg correcto
+          let cueRegFinal = s?.CueReg || s?.DocReg || "";
 
-        if (Array.isArray(data.data)) {
-          setDocumentos(data.data);
-        } else {
-          console.warn("⚠️ No se encontró arreglo 'data' en respuesta:", data);
+          if (!cueRegFinal && s?.DocCod) {
+            const match = String(s.DocCod).split("-")[0];
+            cueRegFinal = match;
+          }
+
+          if (!cueRegFinal) {
+            console.warn("⚠️ No se encontró ningún identificador válido para CueReg.");
+            setDocumentos([]);
+            setCargandoDocs(false);
+            return;
+          }
+
+          console.log("👉 Usando CueRegFinal:", cueRegFinal);
+
+          const res = await fetch(
+            `${BASE_URL}/api/agestiones/documentos/buscar.php?CueCod=${s.CueCod}&CueReg=${cueRegFinal}&filterslength=0&pagenum=0&pagesize=10&page=0&limit=10`
+          );
+
+          const text = await res.text();
+          let data;
+
+          try {
+            const clean = text.trim().replace(/^[^{[]+/, "");
+            data = JSON.parse(clean);
+          } catch (parseErr) {
+            console.warn("⚠️ Error al parsear JSON, respuesta cruda:", text);
+            data = { data: [] };
+          }
+
+          if (Array.isArray(data.data)) {
+            setDocumentos(data.data);
+          } else {
+            console.warn("⚠️ No se encontró arreglo 'data' en respuesta:", data);
+            setDocumentos([]);
+          }
+        } catch (err) {
+          console.error("Error cargando documentos:", err);
           setDocumentos([]);
+        } finally {
+          setCargandoDocs(false);
         }
-      } catch (err) {
-        console.error("Error cargando documentos:", err);
-        setDocumentos([]);
-      } finally {
-        setCargandoDocs(false);
+      };
+
+      fetchDocs();
+    }
+  }, [open, s]);
+
+
+  useEffect(() => {
+    if (!s?.DocCod || !["FIN", "ENTREGADO"].includes(String(etiquetaEstado || "").trim().toUpperCase())) return;
+
+    const fetchDocFinal = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${s.DocCod}`);
+        const data = await res.json();
+
+        if (data.success && data.data) {
+          setDocFinal(data.data);
+          console.log("📄 Documento final cargado:", data.data);
+        } else {
+          console.warn("⚠️ No se encontró documento final:", data);
+        }
+      } catch (error) {
+        console.error("Error al obtener documento final:", error);
       }
     };
 
-    fetchDocs();
-  }
-}, [open, s]);
+    fetchDocFinal();
+  }, [s?.DocCod, etiquetaEstado]);
 
-
-useEffect(() => {
-  if (!s?.DocCod || !["FIN", "ENTREGADO"].includes(String(etiquetaEstado || "").trim().toUpperCase())) return;
-
-  const fetchDocFinal = async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/api/asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${s.DocCod}`);
-      const data = await res.json();
-
-      if (data.success && data.data) {
-        setDocFinal(data.data);
-        console.log("📄 Documento final cargado:", data.data);
-      } else {
-        console.warn("⚠️ No se encontró documento final:", data);
-      }
-    } catch (error) {
-      console.error("Error al obtener documento final:", error);
-    }
-  };
-
-  fetchDocFinal();
-}, [s?.DocCod, etiquetaEstado]);
+  /* ✅ Verificar si todos los chips están en OK */
+  const todosOk =
+  ["OK", "SOLVENTE"].includes(String(s?.BecNom).toUpperCase()) &&
+  ["OK", "SOLVENTE"].includes(String(s?.EstCont).toUpperCase()) &&
+  ["OK", "SOLVENTE"].includes(String(s?.EstReg).toUpperCase()) &&
+  ["OK", "SOLVENTE"].includes(String(estadoBiblioteca || "").toUpperCase());
 
   // ⚠️ Este return puede ir tranquilo después de los hooks
-   console.log("🧠 Datos de solicitud:", s);
-   console.log("📄 Valor real de DocEst:", s?.EstNom );
+  console.log("🧠 Datos de solicitud:", s);
+  console.log("📄 Valor real de DocEst:", s?.EstNom);
   if (!s) return null;
 
   const puedeDenegar = String(s?.EstNom || "").toLowerCase().startsWith("pendient");
-  const puedeAutorizar = String(s?.EstNom || "").toLowerCase() === "pendiente";
+  const puedeAutorizar = String(s?.EstNom || "").toLowerCase() === "pendiente" && todosOk;
 
   const safeClose = () => {
     if (document.activeElement instanceof HTMLElement) {
@@ -239,16 +249,45 @@ useEffect(() => {
     setTimeout(() => onClose?.(), 0);
   };
 
+  async function enviarCorreo(tipo, correo, obs) {
+      try {
+        if (!Array.isArray(correo) || correo.length === 0) {
+          console.warn("No hay correos válidos.");
+          return;
+        }
+  
+        for (const c of correo) {
+          const correoDestino = typeof c === "string" ? c : c.correo;
+  
+          const payload = {
+            tipo,
+            correo: correoDestino,
+            Obs: obs
+          };
+  
+          const url = `${BASE_URL}/api/asolicitud_documentos/enviarCorreo.php`;
+  
+          const res = await axios.post(url, payload, {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true
+          });
+  
+          if (res.data?.success) {
+            console.log(`Correo enviado correctamente a ${correoDestino}`);
+          } else {
+            console.warn(`No se pudo enviar el correo a ${correoDestino}:`, res.data);
+          }
+        }
+  
+      } catch (error) {
+        console.error("Error al enviar correos:", error);
+      }
+    }
 
-  /* ✅ Verificar si todos los chips están en OK */
-  const todosOk =
-    String(s?.BecNom).toUpperCase() === "OK" &&
-    String(s?.EstCont).toUpperCase() === "OK" &&
-   // String(s?.CorNom).toUpperCase() === "OK" 
-    String(s?.EstReg).toUpperCase() === "OK" &&
-    String(estadoBiblioteca || "").toUpperCase() === "OK";
 
-    const mostrarBotonRegistro = String(s?.EstReg || "").toUpperCase() === "PDT";
+  
+
+  const mostrarBotonRegistro = String(s?.EstReg || "").toUpperCase() === "PDT";
 
   /* ---------- Render principal ---------- */
   return (
@@ -266,7 +305,7 @@ useEffect(() => {
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 4 }}>
           <Typography variant="h6" fontWeight={700}>Detalle de solicitud</Typography>
           <Chip
-            label={etiquetaEstado|| "-"}
+            label={etiquetaEstado || "-"}
             sx={{
               bgcolor: alpha(estadoColorLocal(theme, etiquetaEstado || ""), 0.12),
               color: estadoColorLocal(theme, etiquetaEstado || ""),
@@ -280,7 +319,7 @@ useEffect(() => {
       </DialogTitle>
 
       <DialogContent dividers>
-       
+
         <Stack spacing={2}>
           {/* Datos principales */}
           <Grid container spacing={2}>
@@ -295,237 +334,238 @@ useEffect(() => {
           <Divider />
           {/* Dependencias */}
           <Stack direction="row" spacing={3} justifyContent="center" alignItems="center" flexWrap="wrap">
-            <Stack direction="row" spacing={1}><Typography><b>Becas</b></Typography><ChipSemaforo valor={s?.BecNom}  /></Stack>
+            <Stack direction="row" spacing={1}><Typography><b>Becas</b></Typography><ChipSemaforo valor={s?.BecNom} /></Stack>
             <Stack direction="row" spacing={1}><Typography><b>Contabilidad</b></Typography><ChipSemaforo valor={s?.EstCont} /></Stack>
             <Stack direction="row" spacing={1}><Typography><b>Biblioteca</b></Typography><ChipSemaforo valor={estadoBiblioteca} /></Stack>
             <Stack direction="row" spacing={1}><Typography><b>Registro</b></Typography><ChipSemaforo valor={s?.EstReg} /></Stack>
           </Stack>
 
           {/* Documentos adjuntos */}
-<Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
-  <Box sx={{ width: "75%" }}>
-    <Typography fontWeight={700} sx={{ mb: 1 }}>
-      Documentos adjuntos:
-    </Typography>
-
-    {cargandoDocs ? (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-        <CircularProgress size={28} />
-      </Box>
-    ) : documentos.length === 0 ? (
-      <Typography>No se encontraron documentos.</Typography>
-    ) : (
-      <Stack spacing={1}>
-        {documentos.map((doc, idx) => {
-          const rutaCompleta = `${BASE_URL}${doc.DocPath}`;
-
-          return (
-            <Box
-              key={idx}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 1.5,
-                p: 1,
-                bgcolor: "background.paper",
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  wordBreak: "break-all",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  flex: 1,
-                }}
-              >
-                📎 {doc.DocNom}
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+            <Box sx={{ width: "75%" }}>
+              <Typography fontWeight={700} sx={{ mb: 1 }}>
+                Documentos adjuntos:
               </Typography>
 
-              <IconButton
-                size="small"
-                color="primary"
-                onClick={() => window.open(rutaCompleta, "_blank", "noopener,noreferrer")}
+              {cargandoDocs ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                  <CircularProgress size={28} />
+                </Box>
+              ) : documentos.length === 0 ? (
+                <Typography>No se encontraron documentos.</Typography>
+              ) : (
+                <Stack spacing={1}>
+                  {documentos.map((doc, idx) => {
+                    const rutaCompleta = `${BASE_URL}${doc.DocPath}`;
+
+                    return (
+                      <Box
+                        key={idx}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 1.5,
+                          p: 1,
+                          bgcolor: "background.paper",
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            wordBreak: "break-all",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            flex: 1,
+                          }}
+                        >
+                          📎 {doc.DocNom}
+                        </Typography>
+
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => window.open(rutaCompleta, "_blank", "noopener,noreferrer")}
+                          sx={{
+                            ml: 1,
+                            bgcolor: "#f5f5f5",
+                            border: "1px solid #ddd",
+                            "&:hover": { bgcolor: "#e0e0e0" },
+                          }}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              )}
+            </Box>
+          </Box>
+
+          {/* ✅ Mostrar documento final solo si el estado es “En proceso de entrega” */}
+          {String(etiquetaEstado || "").trim().toUpperCase() === "EN PROCESO DE ENTREGA" && (
+            <VisualizarDocumentoFinalServicio docCod={s?.DocCod} />
+          )}
+
+          {/* Bloque “Servicio Académico entregado” */}
+          {["FIN", "ENTREGADO"].includes(String(etiquetaEstado || "").trim().toUpperCase()) && (
+            <Box
+              sx={{
+                mt: 3,
+                width: "75%",
+                mx: "auto",
+                display: "flex",
+                justifyContent: "flex-start",
+                pl: 13.5, // 👈 conserva tu alineación derecha
+              }}
+            >
+              <Box
                 sx={{
-                  ml: 1,
-                  bgcolor: "#f5f5f5",
-                  border: "1px solid #ddd",
-                  "&:hover": { bgcolor: "#e0e0e0" },
+                  p: 2.5,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.default",
+                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
+                  minWidth: 380,
                 }}
               >
-                <VisibilityIcon />
-              </IconButton>
+                {/* Encabezado */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    mb: 1,
+                  }}
+                >
+                  <CheckCircleRoundedIcon sx={{ color: "success.main" }} />
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    color="success.main"
+                  >
+                    Servicio Académico entregado
+                  </Typography>
+                </Box>
+
+                {/* Comentario */}
+                {docFinal?.ComentarioServicioEntregado ? (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.primary",
+                      lineHeight: 1.5,
+                      mb: 2,
+                      whiteSpace: "pre-line",
+                      textAlign: "left",
+                    }}
+                  >
+                    <strong style={{ color: "#2e7d32" }}>Comentario de entrega:</strong>{" "}
+                    {docFinal.ComentarioServicioEntregado}
+                  </Typography>
+                ) : (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      fontStyle: "italic",
+                      mb: 2,
+                      textAlign: "center",
+                    }}
+                  >
+                    No se agregó comentario de entrega.
+                  </Typography>
+                )}
+
+                <Divider sx={{ mb: 2 }} />
+
+                {/* Botón */}
+                <Box sx={{ textAlign: "center" }}>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<VisibilityIcon />}
+                    onClick={() => {
+                      if (docFinal?.DocPath) {
+                        window.open(`${BASE_URL}${docFinal.DocPath}`, "_blank", "noopener,noreferrer");
+                      } else {
+                        Swal.fire({
+                          icon: "warning",
+                          title: "Documento no disponible",
+                          text: "No se encontró el archivo final para esta solicitud.",
+                          confirmButtonText: "Entendido",
+                        });
+                      }
+                    }}
+                    sx={{
+                      fontWeight: 700,
+                      px: 3,
+                      py: 0.8,
+                      borderRadius: 1.5,
+                      boxShadow: "none",
+                    }}
+                  >
+                    Ver documento
+                  </Button>
+                </Box>
+              </Box>
             </Box>
-          );
-        })}
-      </Stack>
-    )}
-  </Box>
-</Box>
+          )}
 
-{/* ✅ Mostrar documento final solo si el estado es “En proceso de entrega” */}
-{String(etiquetaEstado || "").trim().toUpperCase() === "EN PROCESO DE ENTREGA" && (
-  <VisualizarDocumentoFinalServicio docCod={s?.DocCod} />
-)}
+          {/* Modal visor de documento */}
+          {visorArchivo?.abierto && (
+            <Dialog
+              open={visorArchivo.abierto}
+              onClose={() => setVisorArchivo({ abierto: false })}
+              maxWidth="sm"
+              fullWidth
+            >
+              <DialogTitle>
+                {visorArchivo.nombre}
+                <IconButton
+                  onClick={() => setVisorArchivo({ abierto: false })}
+                  sx={{ position: "absolute", right: 8, top: 8 }}
+                >
+                  <CloseRoundedIcon />
+                </IconButton>
+              </DialogTitle>
 
-{/* Bloque “Servicio Académico entregado” */}
-{["FIN", "ENTREGADO"].includes(String(etiquetaEstado || "").trim().toUpperCase()) && (
-  <Box
-    sx={{
-      mt: 3,
-      width: "75%",
-      mx: "auto",
-      display: "flex",
-      justifyContent: "flex-start",
-      pl: 13.5, // 👈 conserva tu alineación derecha
-    }}
-  >
-    <Box
-      sx={{
-        p: 2.5,
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        bgcolor: "background.default",
-        boxShadow: "inset 0 1px 3px rgba(0,0,0,0.05)",
-        minWidth: 380,
-      }}
-    >
-      {/* Encabezado */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          mb: 1,
-        }}
-      >
-        <CheckCircleRoundedIcon sx={{ color: "success.main" }} />
-        <Typography
-          variant="subtitle1"
-          fontWeight="bold"
-          color="success.main"
-        >
-          Servicio Académico entregado
-        </Typography>
-      </Box>
+              <DialogContent
+                dividers
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  py: 3,
+                }}
+              >
+                <Typography sx={{ mb: 2, textAlign: "center" }}>
+                  Este archivo se abrirá en una nueva pestaña para una mejor visualización.
+                </Typography>
 
-      {/* Comentario */}
-      {docFinal?.ComentarioServicioEntregado ? (
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.primary",
-            lineHeight: 1.5,
-            mb: 2,
-            whiteSpace: "pre-line",
-            textAlign: "left",
-          }}
-        >
-          <strong style={{ color: "#2e7d32" }}>Comentario de entrega:</strong>{" "}
-          {docFinal.ComentarioServicioEntregado}
-        </Typography>
-      ) : (
-        <Typography
-          variant="body2"
-          sx={{
-            color: "text.secondary",
-            fontStyle: "italic",
-            mb: 2,
-            textAlign: "center",
-          }}
-        >
-          No se agregó comentario de entrega.
-        </Typography>
-      )}
-
-      <Divider sx={{ mb: 2 }} />
-
-      {/* Botón */}
-      <Box sx={{ textAlign: "center" }}>
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<VisibilityIcon />}
-          onClick={() => {
-            if (docFinal?.DocPath) {
-              window.open(`${BASE_URL}${docFinal.DocPath}`, "_blank", "noopener,noreferrer");
-            } else {
-              Swal.fire({
-                icon: "warning",
-                title: "Documento no disponible",
-                text: "No se encontró el archivo final para esta solicitud.",
-                confirmButtonText: "Entendido",
-              });
-            }
-          }}
-          sx={{
-            fontWeight: 700,
-            px: 3,
-            py: 0.8,
-            borderRadius: 1.5,
-            boxShadow: "none",
-          }}
-        >
-          Ver documento
-        </Button>
-      </Box>
-    </Box>
-  </Box>
-)}
-
-{/* Modal visor de documento */}
-{visorArchivo?.abierto && (
-  <Dialog
-    open={visorArchivo.abierto}
-    onClose={() => setVisorArchivo({ abierto: false })}
-    maxWidth="sm"
-    fullWidth
-  >
-    <DialogTitle>
-      {visorArchivo.nombre}
-      <IconButton
-        onClick={() => setVisorArchivo({ abierto: false })}
-        sx={{ position: "absolute", right: 8, top: 8 }}
-      >
-        <CloseRoundedIcon />
-      </IconButton>
-    </DialogTitle>
-
-    <DialogContent
-      dividers
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        py: 3,
-      }}
-    >
-      <Typography sx={{ mb: 2, textAlign: "center" }}>
-        Este archivo se abrirá en una nueva pestaña para una mejor visualización.
-      </Typography>
-
-      <Button
-        variant="contained"
-        color="primary"
-        href={visorArchivo.ruta}
-        target="_blank"
-        rel="noopener noreferrer"
-        startIcon={<VisibilityIcon />}
-        sx={{ fontWeight: 700 }}
-      >
-        Abrir archivo
-      </Button>
-    </DialogContent>
-  </Dialog>
-)}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  href={visorArchivo.ruta}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  startIcon={<VisibilityIcon />}
+                  sx={{ fontWeight: 700 }}
+                >
+                  Abrir archivo
+                </Button>
+              </DialogContent>
+            </Dialog>
+          )}
 
           {/* Botón global si todos los chips están en OK */}
+         {/*
           {todosOk && (
             <Box sx={{ textAlign: "center", mt: 2 }}>
               <Button
@@ -545,7 +585,7 @@ useEffect(() => {
               </Button>
             </Box>
           )}
-
+    */}
           <Divider />
 
           <Typography fontWeight={700}>Observaciones:</Typography>
@@ -560,9 +600,10 @@ useEffect(() => {
           <Button variant="contained" color="primary" onClick={() => setOpenComprobante(true)}>Pagar</Button>
         )}
         {/* ✅ Nuevo botón de “Marcar como OK (Registro)” */}
-         {mostrarBotonRegistro && (
-          <BotonActualizarRegistro solicitud={s} onUpdate={onUpdate} />
-         )}
+        {mostrarBotonRegistro &&
+  String(s?.EstNom || "").toLowerCase() !== "denegado" && (
+    <BotonActualizarRegistro solicitud={s} onUpdate={onUpdate} />
+  )}
         {puedeAutorizar && (
           <Button variant="outlined" color="success" onClick={() => setOpenAutorizar(true)}>Proceder pago</Button>
         )}
@@ -570,47 +611,47 @@ useEffect(() => {
           <Button variant="outlined" color="error" onClick={() => setOpenDenegar(true)}>Denegar</Button>
         )}
         {/* ✅ Mostrar botón solo si el estado actual es "En proceso" (PGD) */}
-{["PGD", "EN PROCESO"].includes(
-  String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
-) && (
-  <Button
-    variant="contained"
-    color="primary"
-    sx={{ fontWeight: 700 }}
-    onClick={() => setOpenAdjuntar(true)}
-  >
-    Adjuntar documento final
-  </Button>
-)}
-{/* ✅ Mostrar botón solo si el estado actual es "En proceso de entrega" (CMP) */}
-{["CMP", "EN PROCESO DE ENTREGA"].includes(
-  String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
-) && (
-  <>
-    {/* 🔹 Si NO ha sido notificado, mostrar botón azul */}
-    {!notificado && (
-      <BotonNotificarAlumno
-        solicitud={solicitud}
-        docCod={s?.DocCod}
-        usrUsr={s?.CueCod} // puedes cambiar por usuario del sistema si aplica
-        onNotificadoChange={setNotificado}
-      />
-    )}
+        {["PGD", "EN PROCESO"].includes(
+          String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
+        ) && (
+            <Button
+              variant="contained"
+              color="primary"
+              sx={{ fontWeight: 700 }}
+              onClick={() => setOpenAdjuntar(true)}
+            >
+              Adjuntar documento final
+            </Button>
+          )}
+        {/* ✅ Mostrar botón solo si el estado actual es "En proceso de entrega" (CMP) */}
+        {["CMP", "EN PROCESO DE ENTREGA"].includes(
+          String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
+        ) && (
+            <>
+              {/* 🔹 Si NO ha sido notificado, mostrar botón azul */}
+              {!notificado && (
+                <BotonNotificarAlumno
+                  solicitud={solicitud}
+                  docCod={s?.DocCod}
+                  usrUsr={s?.CueCod} // puedes cambiar por usuario del sistema si aplica
+                  onNotificadoChange={setNotificado}
+                />
+              )}
 
-    {/* 🔹 Si ya fue notificado, mostrar botón verde */}
-    {notificado && (
-      <Button
-        variant="contained"
-        color="success"
-        sx={{ fontWeight: 700 }}
-        onClick={() => setOpenEntrega(true)}
-      >
-        Marcar como entregado
-      </Button>
-    )}
-  </>
-)}
-<Button onClick={safeClose}>Cerrar</Button>  
+              {/* 🔹 Si ya fue notificado, mostrar botón verde */}
+              {notificado && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  sx={{ fontWeight: 700 }}
+                  onClick={() => setOpenEntrega(true)}
+                >
+                  Marcar como entregado
+                </Button>
+              )}
+            </>
+          )}
+        <Button onClick={safeClose}>Cerrar</Button>
 
       </DialogActions>
 
@@ -624,6 +665,7 @@ useEffect(() => {
             setOpenDenegar(false);
             onClose?.();
             setTimeout(() => onDenegar?.(s, observacion), 0);
+            enviarCorreo("denegado_solicitud_alumno", [solicitud.CueMail], observacion)
           }}
         />
       )}
@@ -640,21 +682,21 @@ useEffect(() => {
       {openComprobante && (
         <ModalAdjuntarComprobante open={openComprobante} solicitud={s} onClose={() => setOpenComprobante(false)} />
       )}
- {/* ✅ Modal para adjuntar documento final */}
-{openAdjuntar && (
-  <ModalAdjuntarDocumentoServicioAcademico
-    open={openAdjuntar}
-    onClose={() => setOpenAdjuntar(false)}
-    solicitud={s}
-    onUpdate={onUpdate}
-    onSuccess={() => {
-    // actualiza el chip y oculta el botón sin recargar todo
-    setEstadoDocLocal("CMP");
-    setEtiquetaEstado("En proceso de entrega");
-     setOpenAdjuntar(false);
-  }}
-  />
-)}
+      {/* ✅ Modal para adjuntar documento final */}
+      {openAdjuntar && (
+        <ModalAdjuntarDocumentoServicioAcademico
+          open={openAdjuntar}
+          onClose={() => setOpenAdjuntar(false)}
+          solicitud={s}
+          onUpdate={onUpdate}
+          onSuccess={() => {
+            // actualiza el chip y oculta el botón sin recargar todo
+            setEstadoDocLocal("CMP");
+            setEtiquetaEstado("En proceso de entrega");
+            setOpenAdjuntar(false);
+          }}
+        />
+      )}
       {/* Historial */}
       <Dialog open={openHist} onClose={() => setTimeout(() => setOpenHist(false), 0)} fullWidth maxWidth="md" disableRestoreFocus disableEnforceFocus>
         <DialogTitle sx={{ textAlign: "center", fontWeight: 700, fontSize: "1.25rem", borderBottom: "1px solid", borderColor: theme.palette.divider }}>
@@ -674,35 +716,35 @@ useEffect(() => {
         </DialogContent>
       </Dialog>
 
-       {/* ✅ Modal para confirmar entrega física del documento */}
-{openEntrega && (
-  <ModalEntregaDocumentoServicioFinal
-    open={openEntrega}
-    onClose={() => setOpenEntrega(false)}
-    solicitud={s}
-    onEntregado={() => {
-      setOpenEntrega(false);
-      setEstadoDocLocal("FIN");
-      setEtiquetaEstado("Entregado");
+      {/* ✅ Modal para confirmar entrega física del documento */}
+      {openEntrega && (
+        <ModalEntregaDocumentoServicioFinal
+          open={openEntrega}
+          onClose={() => setOpenEntrega(false)}
+          solicitud={s}
+          onEntregado={() => {
+            setOpenEntrega(false);
+            setEstadoDocLocal("FIN");
+            setEtiquetaEstado("Entregado");
 
-      // 🔹 Refrescar tabla principal o mover a pestaña “Completados”
-      if (onUpdate) onUpdate();
+            // 🔹 Refrescar tabla principal o mover a pestaña “Completados”
+            if (onUpdate) onUpdate();
 
-      // 🔹 Confirmación visual rápida
-      Swal.fire({
-        icon: "success",
-        title: "Entrega confirmada",
-        text: "El documento ha sido marcado como entregado.",
-        timer: 1800,
-        showConfirmButton: false,
-        didOpen: () => {
-          const swalContainer = document.querySelector(".swal2-container");
-          if (swalContainer) swalContainer.style.zIndex = 20000;
-        },
-      });
-    }}
-  />
-)}           
+            // 🔹 Confirmación visual rápida
+            Swal.fire({
+              icon: "success",
+              title: "Entrega confirmada",
+              text: "El documento ha sido marcado como entregado.",
+              timer: 1800,
+              showConfirmButton: false,
+              didOpen: () => {
+                const swalContainer = document.querySelector(".swal2-container");
+                if (swalContainer) swalContainer.style.zIndex = 20000;
+              },
+            });
+          }}
+        />
+      )}
     </Dialog>
   );
 }

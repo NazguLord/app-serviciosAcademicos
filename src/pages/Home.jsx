@@ -2,12 +2,11 @@
 import React, { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import {
   Box, Typography, Select, MenuItem, FormControl, InputLabel,
-  TextField, Tabs, Tab, Paper
+  TextField, Tabs, Tab, Paper, CircularProgress
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import SchoolIcon from "@mui/icons-material/School";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
 import { obtenerCampus } from "../api/campusApi";
 import { obtenerSolicitudes, denegarSolicitud, validarBiblioteca } from "../api/solicitudesApi";
@@ -57,7 +56,6 @@ const mapearSolicitudes = (datos = []) =>
     DocSolObs: item.DocSolObs || "-",
   }));
 
-// 🔹 Nuevo componente memoizado solo para el modal
 const DetalleWrapper = React.memo(({ open, filaSel, onClose, onDenegar, onUpdate }) => (
   <DetalleSolicitudServicioAcademico
     open={open}
@@ -81,6 +79,8 @@ function Home() {
   const [filtro, setFiltro] = useState("");
   const [listaCampus, setListaCampus] = useState([]);
   const [cargando, setCargando] = useState(false);
+  const [openDetalle, setOpenDetalle] = useState(false);
+  const [filaSel, setFilaSel] = useState(null);
 
   const estadoActual = estados[estadoTab].value;
 
@@ -88,11 +88,17 @@ function Home() {
   const cargarSolicitudes = useCallback(async () => {
     if (!campusSeleccionado) return;
     setCargando(true);
-    const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
-    setSolicitudes(mapearSolicitudes(data));
-    setCargando(false);
+    try {
+      const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
+      setSolicitudes(mapearSolicitudes(data));
+    } catch (err) {
+      console.error("Error al cargar solicitudes:", err);
+    } finally {
+      setCargando(false);
+    }
   }, [campusSeleccionado, estadoActual]);
 
+  // ✅ Cargar campus al iniciar
   useEffect(() => {
     const cargarCampus = async () => {
       const campus = await obtenerCampus();
@@ -102,51 +108,49 @@ function Home() {
     cargarCampus();
   }, []);
 
+  // ✅ Recargar automáticamente al cambiar campus o pestaña
   useEffect(() => {
-    cargarSolicitudes();
-  }, [cargarSolicitudes]);
-
+    if (campusSeleccionado) cargarSolicitudes();
+  }, [campusSeleccionado, estadoTab, cargarSolicitudes]);
 
   // Construir el mapa de estados de Biblioteca por CueCod
- useEffect(() => {
-   if (!solicitudes?.length) {
-     setBibliotecaMap({});
-     return;
-   }
-   const cueCods = [...new Set(solicitudes.map(s => s.CueCod).filter(Boolean))];
- 
-   let cancel = false;
-   (async () => {
-     const entries = await Promise.all(
-       cueCods.map(async (cueCod) => {
-         try {
-           const r = await validarBiblioteca(cueCod);
-           const estado = r.ok ? (r.tienePendientes ? "PDT" : "OK") : undefined;
-           return [cueCod, estado];
-         } catch {
-           return [cueCod, undefined];
-         }
-       })
-     );
-     if (!cancel) setBibliotecaMap(Object.fromEntries(entries));
-   })();
-   return () => { cancel = true; };
- }, [solicitudes]);
+  useEffect(() => {
+    if (!solicitudes?.length) {
+      setBibliotecaMap({});
+      return;
+    }
+    const cueCods = [...new Set(solicitudes.map(s => s.CueCod).filter(Boolean))];
 
- const handleSearch = (e) => setBusqueda(e.target.value.toLowerCase());
+    let cancel = false;
+    (async () => {
+      const entries = await Promise.all(
+        cueCods.map(async (cueCod) => {
+          try {
+            const r = await validarBiblioteca(cueCod);
+            const estado = r.ok ? (r.tienePendientes ? "PDT" : "OK") : undefined;
+            return [cueCod, estado];
+          } catch {
+            return [cueCod, undefined];
+          }
+        })
+      );
+      if (!cancel) setBibliotecaMap(Object.fromEntries(entries));
+    })();
+    return () => { cancel = true; };
+  }, [solicitudes]);
+
+  const handleSearch = (e) => setBusqueda(e.target.value.toLowerCase());
 
   useEffect(() => {
-  const t = setTimeout(() => {
-    setFiltro(busqueda.toLowerCase());
-  }, 300); // espera 300ms
-  return () => clearTimeout(t);
-}, [busqueda]);
+    const t = setTimeout(() => {
+      setFiltro(busqueda.toLowerCase());
+    }, 300);
+    return () => clearTimeout(t);
+  }, [busqueda]);
 
-  // ✅ memoizamos para que no se recree siempre
   const handleDenegar = useCallback(async (row, observacion) => {
     try {
       setCargando(true);
-
       Swal.fire({
         title: 'Denegando...',
         text: 'Por favor espera',
@@ -156,10 +160,6 @@ function Home() {
           document.activeElement?.blur();
           Swal.showLoading();
         },
-        willClose: () => {
-          const root = document.getElementById('root');
-          root?.removeAttribute('aria-hidden');
-        }
       });
 
       const r = await denegarSolicitud({
@@ -196,15 +196,10 @@ function Home() {
   }, [cargarSolicitudes]);
 
   const handleTabChange = (event, newValue) => {
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
+    document.activeElement?.blur();
     setEstadoTab(newValue);
     setOpenDetalle(false);
   };
-
-  const [openDetalle, setOpenDetalle] = useState(false);
-  const [filaSel, setFilaSel] = useState(null);
 
   const abrirDetalle = (row, e) => {
     e?.currentTarget?.blur?.();
@@ -213,12 +208,11 @@ function Home() {
   };
   const cerrarDetalle = () => setOpenDetalle(false);
 
-  // ✅ memoizar las filas evita renders innecesarios en DataGrid
   const filasMemo = useMemo(() => solicitudes, [solicitudes]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", flex: 1, width: "100%", px: 2, py: 3 }}>
-      {/* Título */}
+      {/* 🔷 Título */}
       <Box sx={{ textAlign: "center", mb: 4, mt: 1 }}>
         <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 1 }}>
           <SchoolIcon
@@ -234,7 +228,9 @@ function Home() {
               fontWeight: 700,
               letterSpacing: 1,
               color: isDark ? "#ffffff" : "#0d47a1",
-              textShadow: isDark ? "1px 1px 2px rgba(0,0,0,0.8)" : "1px 1px 2px rgba(0,0,0,0.1)",
+              textShadow: isDark
+                ? "1px 1px 2px rgba(0,0,0,0.8)"
+                : "1px 1px 2px rgba(0,0,0,0.1)",
             }}
           >
             Servicios Académicos
@@ -280,32 +276,38 @@ function Home() {
       </Box>
 
       {/* Tabs */}
-      <Paper elevation={2} sx={{ maxWidth: 500, width: "100%", mx: "auto", borderRadius: 2, mb: 2,  px: 2, py: 1, position: "relative"}}>
+      <Paper elevation={2} sx={{ maxWidth: 500, width: "100%", mx: "auto", borderRadius: 2, mb: 2, px: 2, py: 1, position: "relative" }}>
         <Tabs value={estadoTab} onChange={handleTabChange} centered textColor="primary" indicatorColor="primary">
           <Tab label="PENDIENTES" sx={{ color: theme.palette.warning.light }} />
           <Tab label="PROCESO" sx={{ color: theme.palette.warning.dark }} />
           <Tab label="COMPLETADOS" sx={{ color: theme.palette.success.main }} />
-          <Tab label="DENEGADOS" sx={{ color: theme.palette.error.main }} />         
-        </Tabs>  
-        <Box sx={{ position: "absolute",  right: -90, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 1 }}>
+          <Tab label="DENEGADOS" sx={{ color: theme.palette.error.main }} />
+        </Tabs>
+        <Box sx={{ position: "absolute", right: -90, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 1 }}>
           <ExportButtons
             rows={filasMemo}
-            fileName={`solicitudes-${estadoActual}`} 
-            campus={listaCampus.find(c => c.CamCod === campusSeleccionado)?.CamNomEsp || "Todos"} 
+            fileName={`solicitudes-${estadoActual}`}
+            campus={listaCampus.find(c => c.CamCod === campusSeleccionado)?.CamNomEsp || "Todos"}
           />
-        </Box>      
+        </Box>
       </Paper>
 
-      {/* DataGrid */}
-      <TablaSolicitudes
-        solicitudes={filasMemo}
-        busqueda={busqueda}
-        cargando={cargando}
-        onVerDetalle={abrirDetalle}
-        bibliotecaMap={bibliotecaMap}
-      />
+      {/* Tabla o Loader */}
+      {cargando ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <TablaSolicitudes
+          solicitudes={filasMemo}
+          busqueda={busqueda}
+          cargando={cargando}
+          onVerDetalle={abrirDetalle}
+          bibliotecaMap={bibliotecaMap}
+        />
+      )}
 
-      {/* Modal detalle (memoizado en DetalleWrapper) */}
+      {/* Modal detalle */}
       <DetalleWrapper
         open={openDetalle}
         filaSel={filaSel}
