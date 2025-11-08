@@ -81,7 +81,7 @@ function Home() {
   const [cargando, setCargando] = useState(false);
   const [openDetalle, setOpenDetalle] = useState(false);
   const [filaSel, setFilaSel] = useState(null);
-
+  const [tienePermisoGlobal, setTienePermisoGlobal] = useState(false);
   const estadoActual = estados[estadoTab].value;
 
   // ✅ función reutilizable para cargar solicitudes
@@ -98,15 +98,40 @@ function Home() {
     }
   }, [campusSeleccionado, estadoActual]);
 
-  // ✅ Cargar campus al iniciar
-  useEffect(() => {
-    const cargarCampus = async () => {
+  // ✅ Cargar campus según permisos del usuario
+useEffect(() => {
+  const cargarCampus = async () => {
+    try {
       const campus = await obtenerCampus();
-      setListaCampus(campus);
-      if (campus.length > 0) setCampusSeleccionado(campus[0].CamCod);
-    };
-    cargarCampus();
-  }, []);
+
+      const permisos = userData?.permissions || {};
+      const sedeDef = String(userData?.SdeDef || "");
+      const permisosCORE = permisos?.CORE || {};
+
+      // 🧠 Permisos CORE que dan acceso global
+      const permisosGlobales = ["CORE0001"];
+
+      // Verifica si el usuario tiene alguno de esos permisos
+      const esGlobal = permisosGlobales.some((permiso) => permisosCORE?.[permiso]);
+      setTienePermisoGlobal(esGlobal); // 👈 ahora lo guardamos en el estado
+
+      if (esGlobal) {
+        // ✅ Usuario con permiso global: puede ver todos los campus
+        setListaCampus(campus);
+        if (campus.length > 0) setCampusSeleccionado(campus[0].CamCod);
+      } else {
+        // 🚫 Usuario normal: solo su campus (SdeDef)
+        const filtrado = campus.filter((c) => String(c.CamCod) === sedeDef);
+        setListaCampus(filtrado);
+        if (filtrado.length > 0) setCampusSeleccionado(filtrado[0].CamCod);
+      }
+    } catch (error) {
+      console.error("Error al cargar campus:", error);
+    }
+  };
+
+  cargarCampus();
+}, [userData]);
 
   // ✅ Recargar automáticamente al cambiar campus o pestaña
   useEffect(() => {
@@ -257,6 +282,7 @@ function Home() {
             value={campusSeleccionado}
             onChange={(e) => setCampusSeleccionado(e.target.value)}
             label="Campus"
+            disabled={!tienePermisoGlobal}
           >
             {listaCampus.map((campus) => (
               <MenuItem key={campus.CamCod} value={campus.CamCod}>

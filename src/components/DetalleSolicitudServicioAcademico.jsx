@@ -1,5 +1,6 @@
 // src/components/DetalleSolicitudServicioAcademico.jsx
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect, lazy, Suspense, useContext } from "react";
+import { AppContext } from "../context/AppContext";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, Chip, Stack, Grid, Divider,
   IconButton, Button, DialogContentText, CircularProgress
@@ -93,9 +94,13 @@ export default function DetalleSolicitudServicioAcademico({
   onUpdate,
 }) {
   const theme = useTheme();
+  const { userData } = useContext(AppContext);
   const s = solicitud; // se usa después
 
-  // ⚙️ Hooks siempre deben declararse ANTES de cualquier return condicional
+ const permisosCORE = userData?.permissions?.CORE || {};
+ const permisosBotonAdjuntar = ["CORE0001"]; // 🔸 puedes agregar más si deseas
+ const tienePermisoAdjuntar = permisosBotonAdjuntar.some((permiso) => permisosCORE?.[permiso]);
+
   const [openDenegar, setOpenDenegar] = useState(false);
   const [openHist, setOpenHist] = useState(false);
   const [openAutorizar, setOpenAutorizar] = useState(false);
@@ -139,16 +144,16 @@ export default function DetalleSolicitudServicioAcademico({
   useEffect(() => {
     setEstadoDocLocal(s?.DocEst || "");
     setEtiquetaEstado(s?.EstNom || "");
-  }, [s?.DocCod]);
+  }, [s?.DocCod, s?.DocEst, s?.EstNom]);
 
   /* ✅ Traer documentos al abrir el modal */
   useEffect(() => {
     if (open && s?.CueCod) {
-      console.log("🔍 Datos enviados al endpoint:");
-      console.log("CueCod:", s?.CueCod);
-      console.log("CueReg:", s?.CueReg);
-      console.log("DocCod:", s?.DocCod);
-      console.log("DocReg:", s?.DocReg);
+    //  console.log("🔍 Datos enviados al endpoint:");
+    //  console.log("CueCod:", s?.CueCod);
+    //  console.log("CueReg:", s?.CueReg);
+    //  console.log("DocCod:", s?.DocCod);
+    //  console.log("DocReg:", s?.DocReg);
 
 
       const fetchDocs = async () => {
@@ -169,7 +174,7 @@ export default function DetalleSolicitudServicioAcademico({
             return;
           }
 
-          console.log("👉 Usando CueRegFinal:", cueRegFinal);
+         // console.log("👉 Usando CueRegFinal:", cueRegFinal);
 
           const res = await fetch(
             `${BASE_URL}/api/agestiones/documentos/buscar.php?CueCod=${s.CueCod}&CueReg=${cueRegFinal}&filterslength=0&pagenum=0&pagesize=10&page=0&limit=10`
@@ -235,8 +240,8 @@ export default function DetalleSolicitudServicioAcademico({
   ["OK", "SOLVENTE"].includes(String(estadoBiblioteca || "").toUpperCase());
 
   // ⚠️ Este return puede ir tranquilo después de los hooks
-  console.log("🧠 Datos de solicitud:", s);
-  console.log("📄 Valor real de DocEst:", s?.EstNom);
+ // console.log("🧠 Datos de solicitud:", s);
+ // console.log("📄 Valor real de DocEst:", s?.EstNom);
   if (!s) return null;
 
   const puedeDenegar = String(s?.EstNom || "").toLowerCase().startsWith("pendient");
@@ -596,9 +601,11 @@ export default function DetalleSolicitudServicioAcademico({
       <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
         <Box sx={{ flex: 1 }} />
         <Button variant="outlined" startIcon={<TimelineIcon />} onClick={() => setOpenHist(true)}>Vitacora de acciones</Button>
+       {/*  
         {String(s?.EstNom || "").toLowerCase() === "pendiente de pago" && (
           <Button variant="contained" color="primary" onClick={() => setOpenComprobante(true)}>Pagar</Button>
         )}
+      */}
         {/* ✅ Nuevo botón de “Marcar como OK (Registro)” */}
         {mostrarBotonRegistro &&
   String(s?.EstNom || "").toLowerCase() !== "denegado" && (
@@ -612,17 +619,17 @@ export default function DetalleSolicitudServicioAcademico({
         )}
         {/* ✅ Mostrar botón solo si el estado actual es "En proceso" (PGD) */}
         {["PGD", "EN PROCESO"].includes(
-          String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
-        ) && (
-            <Button
-              variant="contained"
-              color="primary"
-              sx={{ fontWeight: 700 }}
-              onClick={() => setOpenAdjuntar(true)}
-            >
-              Adjuntar documento final
-            </Button>
-          )}
+  String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
+) && tienePermisoAdjuntar && (
+  <Button
+    variant="contained"
+    color="primary"
+    sx={{ fontWeight: 700 }}
+    onClick={() => setOpenAdjuntar(true)}
+  >
+    Adjuntar documento final
+  </Button>
+)}
         {/* ✅ Mostrar botón solo si el estado actual es "En proceso de entrega" (CMP) */}
         {["CMP", "EN PROCESO DE ENTREGA"].includes(
           String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
@@ -678,10 +685,11 @@ export default function DetalleSolicitudServicioAcademico({
           onSubmit={async () => { setOpenAutorizar(false); onClose?.(); setTimeout(async () => await onUpdate?.(), 0); }}
         />
       )}
-
+     {/*
       {openComprobante && (
         <ModalAdjuntarComprobante open={openComprobante} solicitud={s} onClose={() => setOpenComprobante(false)} />
       )}
+    */} 
       {/* ✅ Modal para adjuntar documento final */}
       {openAdjuntar && (
         <ModalAdjuntarDocumentoServicioAcademico
