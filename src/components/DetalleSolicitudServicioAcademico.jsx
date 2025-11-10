@@ -98,7 +98,7 @@ export default function DetalleSolicitudServicioAcademico({
   const s = solicitud; // se usa después
 
  const permisosCORE = userData?.permissions?.CORE || {};
- const permisosBotonAdjuntar = ["CORE0001"]; // 🔸 puedes agregar más si deseas
+ const permisosBotonAdjuntar = ["CORE0312"]; // 🔸 puedes agregar más si deseas
  const tienePermisoAdjuntar = permisosBotonAdjuntar.some((permiso) => permisosCORE?.[permiso]);
 
   const [openDenegar, setOpenDenegar] = useState(false);

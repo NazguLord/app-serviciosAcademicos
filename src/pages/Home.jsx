@@ -14,12 +14,14 @@ import { AppContext } from "../context/AppContext";
 import DetalleSolicitudServicioAcademico from "../components/DetalleSolicitudServicioAcademico";
 import TablaSolicitudes from "../components/TablaSolicitudes";
 import ExportButtons from "../components/ExportButtons";
+import { obtenerDocumentosCampusDeEntrega } from "../api/solicitudesApi";
 
 const estados = [
   { label: "Pendientes", value: "Pendientes" },
   { label: "Proceso", value: "Proceso" },
   { label: "Completados", value: "Completados" },
   { label: "Denegados", value: "Denegados" },
+  { label: "Campus de entrega", value: "CampusDeEntrega" },
 ];
 
 const traducirEstado = (estado) => {
@@ -85,18 +87,26 @@ function Home() {
   const estadoActual = estados[estadoTab].value;
 
   // ✅ función reutilizable para cargar solicitudes
-  const cargarSolicitudes = useCallback(async () => {
-    if (!campusSeleccionado) return;
-    setCargando(true);
-    try {
-      const data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
-      setSolicitudes(mapearSolicitudes(data));
-    } catch (err) {
-      console.error("Error al cargar solicitudes:", err);
-    } finally {
-      setCargando(false);
-    }
-  }, [campusSeleccionado, estadoActual]);
+ const cargarSolicitudes = useCallback(async () => {
+  if (!campusSeleccionado) return;
+  setCargando(true);
+  try {
+    let data = [];
+
+    if (estadoActual === "CampusDeEntrega") {
+  data = await obtenerDocumentosCampusDeEntrega(campusSeleccionado);
+} else {
+  data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
+}
+
+    setSolicitudes(mapearSolicitudes(data));
+  } catch (err) {
+    console.error("Error al cargar solicitudes:", err);
+  } finally {
+    setCargando(false);
+  }
+}, [campusSeleccionado, estadoActual]);
+
 
   // ✅ Cargar campus según permisos del usuario
 useEffect(() => {
@@ -109,7 +119,7 @@ useEffect(() => {
       const permisosCORE = permisos?.CORE || {};
 
       // 🧠 Permisos CORE que dan acceso global
-      const permisosGlobales = ["CORE0001"];
+      const permisosGlobales = ["CORE0311"];
 
       // Verifica si el usuario tiene alguno de esos permisos
       const esGlobal = permisosGlobales.some((permiso) => permisosCORE?.[permiso]);
@@ -302,21 +312,67 @@ useEffect(() => {
       </Box>
 
       {/* Tabs */}
-      <Paper elevation={2} sx={{ maxWidth: 500, width: "100%", mx: "auto", borderRadius: 2, mb: 2, px: 2, py: 1, position: "relative" }}>
-        <Tabs value={estadoTab} onChange={handleTabChange} centered textColor="primary" indicatorColor="primary">
-          <Tab label="PENDIENTES" sx={{ color: theme.palette.warning.light }} />
-          <Tab label="PROCESO" sx={{ color: theme.palette.warning.dark }} />
-          <Tab label="COMPLETADOS" sx={{ color: theme.palette.success.main }} />
-          <Tab label="DENEGADOS" sx={{ color: theme.palette.error.main }} />
-        </Tabs>
-        <Box sx={{ position: "absolute", right: -90, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 1 }}>
-          <ExportButtons
-            rows={filasMemo}
-            fileName={`solicitudes-${estadoActual}`}
-            campus={listaCampus.find(c => c.CamCod === campusSeleccionado)?.CamNomEsp || "Todos"}
-          />
-        </Box>
-      </Paper>
+      <Paper
+  elevation={2}
+  sx={{
+    width: "100%",
+    maxWidth: 900,
+    mx: "auto",
+    borderRadius: 2,
+    mb: 2,
+    px: 2,
+    py: 1,
+    position: "relative",
+    overflowX: "auto",
+    "&::-webkit-scrollbar": { height: 6 },
+    "&::-webkit-scrollbar-thumb": {
+      backgroundColor: "rgba(0,0,0,0.2)",
+      borderRadius: 4,
+    },
+  }}
+>
+  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    {/* Tabs dentro de Box */}
+    <Tabs
+      value={estadoTab}
+      onChange={handleTabChange}
+      textColor="primary"
+      indicatorColor="primary"
+      variant="scrollable"
+      scrollButtons="auto"
+      allowScrollButtonsMobile
+      sx={{
+        flex: 1,
+        "& .MuiTab-root": {
+          minWidth: 150,
+          fontWeight: 700,
+          letterSpacing: 0.3,
+        },
+        "& .MuiTabs-flexContainer": {
+          alignItems: "center",
+        },
+      }}
+    >
+      <Tab label="PENDIENTES" sx={{ color: theme.palette.warning.light }} />
+      <Tab label="PROCESO" sx={{ color: theme.palette.warning.dark }} />
+      <Tab label="COMPLETADOS" sx={{ color: theme.palette.success.main }} />
+      <Tab label="DENEGADOS" sx={{ color: theme.palette.error.main }} />
+      <Tab label="CAMPUS DE ENTREGA" sx={{ color: theme.palette.info.main }} />
+    </Tabs>
+
+    {/* Íconos fuera del Tabs 👇 para evitar warnings */}
+    <Box sx={{ ml: 2, flexShrink: 0 }}>
+      <ExportButtons
+        rows={filasMemo}
+        fileName={`solicitudes-${estadoActual}`}
+        campus={
+          listaCampus.find((c) => c.CamCod === campusSeleccionado)?.CamNomEsp ||
+          "Todos"
+        }
+      />
+    </Box>
+  </Box>
+</Paper>
 
       {/* Tabla o Loader */}
       {cargando ? (

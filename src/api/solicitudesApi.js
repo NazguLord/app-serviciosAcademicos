@@ -169,3 +169,17 @@ export const verificarNotificacion = async (docCod) => {
     return { notificado: false };
   }
 };
+
+export const obtenerDocumentosCampusDeEntrega = async (campus) => {
+  try {
+   const response = await axios.get(
+  `${API_BASE}asolicitud_documentos/documentosCampusDeEntrega.php`,
+  { params: { CampusDeEntrega: campus } }
+);
+    return response.data.data || [];
+  } catch (error) {
+    console.error("Error al obtener documentos de campus de entrega:", error);
+    return [];
+  }
+};
+
