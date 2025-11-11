@@ -347,6 +347,43 @@ export default function DetalleSolicitudServicioAcademico({
 
           {/* Documentos adjuntos */}
           <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+          {/* Imagen del alumno */}
+<Box sx={{ mt: 1, display: "flex", justifyContent: "flex-start", alignItems: "center", ml: 2 }}>
+  <Box
+    sx={{
+      border: "1px solid #ccc",
+      borderRadius: 2,
+      width: 130,
+      height: 160,
+      overflow: "hidden",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      mr: 3,
+      backgroundColor: "#f9f9f9",
+    }}
+  >
+    {s?.CueCod ? (
+      <img
+        src={`http://unicahdev.registro.cp.unicah.edu/data/fotos/${s.CueReg}.jpg`}
+        alt="Foto del alumno"
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+        }}
+        onError={(e) => {
+          e.target.src = "/default-user.jpg";
+        }}
+      />
+    ) : (
+      <Typography variant="body2" color="text.secondary">
+        Sin foto
+      </Typography>
+    )}
+  </Box>
+ 
+</Box>
             <Box sx={{ width: "75%" }}>
               <Typography fontWeight={700} sx={{ mb: 1 }}>
                 Documentos adjuntos:
