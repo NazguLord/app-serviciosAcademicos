@@ -21,7 +21,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 import { validarBiblioteca } from "../api/solicitudesApi";
 import ModalAdjuntarDocumentoServicioAcademico from "../components/ModalAdjuntarDocumentoServicioAcademico";
-
+import defaultUser from "../assets/default-user.jpg";
 const HistorialTimeline = lazy(() => import("../components/HistorialTimeline"));
 import VisualizarDocumentoFinalServicio from "../components/VisualizarDocumentoFinalServicio";
 import ModalEntregaDocumentoServicioFinal from "../components/ModalEntregaDocumentoServicioFinal";
@@ -373,7 +373,7 @@ export default function DetalleSolicitudServicioAcademico({
           objectFit: "cover",
         }}
         onError={(e) => {
-          e.target.src = "/default-user.jpg";
+          e.target.src = defaultUser;
         }}
       />
     ) : (
