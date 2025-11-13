@@ -1,0 +1,10 @@
+services:
+  servicios-academicos:
+    build: .
+    container_name: servicios-academicos
+    restart: always
+    ports:
+      - "5173:5173"
+    environment:
+      NODE_ENV: production
+
