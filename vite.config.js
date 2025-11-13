@@ -7,10 +7,10 @@ export default defineConfig(({ command }) => ({
   server: {
     host: true,
     port: 5173,
-    origin: 'http://unicahdev.registro.cp.unicah.edu',
-    allowedHosts: ['unicahdev.registro.cp.unicah.edu'],
+    origin: 'https://registro.cp.unicah.net',
+    allowedHosts: ['registro.cp.unicah.net'],
     hmr: {
-      host: 'unicahdev.registro.cp.unicah.edu',
+      host: 'registro.cp.unicah.net',
       protocol: 'ws'
     }
   }

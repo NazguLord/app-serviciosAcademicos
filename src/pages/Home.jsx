@@ -119,7 +119,7 @@ useEffect(() => {
       const permisosCORE = permisos?.CORE || {};
 
       // 🧠 Permisos CORE que dan acceso global
-      const permisosGlobales = ["CORE0311"];
+      const permisosGlobales = ["CORE0313"];
 
       // Verifica si el usuario tiene alguno de esos permisos
       const esGlobal = permisosGlobales.some((permiso) => permisosCORE?.[permiso]);
