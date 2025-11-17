@@ -177,7 +177,7 @@ export default function DetalleSolicitudServicioAcademico({
          // console.log("👉 Usando CueRegFinal:", cueRegFinal);
 
           const res = await fetch(
-            `${BASE_URL}/api/agestiones/documentos/buscar.php?CueCod=${s.CueCod}&CueReg=${cueRegFinal}&filterslength=0&pagenum=0&pagesize=10&page=0&limit=10`
+            `${BASE_URL}agestiones/documentos/buscar.php?CueCod=${s.CueCod}&CueReg=${cueRegFinal}&filterslength=0&pagenum=0&pagesize=10&page=0&limit=10`
           );
 
           const text = await res.text();
@@ -215,7 +215,7 @@ export default function DetalleSolicitudServicioAcademico({
 
     const fetchDocFinal = async () => {
       try {
-        const res = await fetch(`${BASE_URL}/api/asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${s.DocCod}`);
+        const res = await fetch(`${BASE_URL}asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${s.DocCod}`);
         const data = await res.json();
 
         if (data.success && data.data) {
@@ -270,7 +270,7 @@ export default function DetalleSolicitudServicioAcademico({
             Obs: obs
           };
   
-          const url = `${BASE_URL}/api/asolicitud_documentos/enviarCorreo.php`;
+          const url = `${BASE_URL}asolicitud_documentos/enviarCorreo.php`;
   
           const res = await axios.post(url, payload, {
             headers: { "Content-Type": "application/json" },
@@ -365,7 +365,8 @@ export default function DetalleSolicitudServicioAcademico({
   >
     {s?.CueCod ? (
       <img
-        src={`http://unicahdev.registro.cp.unicah.edu/data/fotos/${s.CueReg}.jpg`}
+     // src={`http://unicahdev.registro.cp.unicah.edu/data/fotos/${s.CueReg}.jpg`}
+        src={`https://registro.cp.unicah.net/data/fotos/${s.CueReg}.jpg`}
         alt="Foto del alumno"
         style={{
           width: "100%",
