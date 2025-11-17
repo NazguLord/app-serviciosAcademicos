@@ -536,7 +536,7 @@ export default function DetalleSolicitudServicioAcademico({
                     startIcon={<VisibilityIcon />}
                     onClick={() => {
                       if (docFinal?.DocPath) {
-                        window.open(`${BASE_URL}${docFinal.DocPath}`, "_blank", "noopener,noreferrer");
+                        window.open(`https://registro.cp.unicah.net${docFinal.DocPath}`, "_blank", "noopener,noreferrer");
                       } else {
                         Swal.fire({
                           icon: "warning",
