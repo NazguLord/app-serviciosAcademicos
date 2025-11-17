@@ -5,7 +5,9 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import axios from "axios";
 
-const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
+//const BASE_URL = "https://unicahdev.registro.cp.unicah.edu";
+const BASE_URL = "https://registro.cp.unicah.net";
+
 
 export default function VisualizarDocumentoFinalServicio({ docCod }) {
   const [archivo, setArchivo] = useState(null);
