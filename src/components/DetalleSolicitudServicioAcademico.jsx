@@ -399,7 +399,7 @@ export default function DetalleSolicitudServicioAcademico({
               ) : (
                 <Stack spacing={1}>
                   {documentos.map((doc, idx) => {
-                    const rutaCompleta = `${BASE_URL}${doc.DocPath}`;
+                    const rutaCompleta = `https://registro.cp.unicah.net${doc.DocPath}`;
 
                     return (
                       <Box
@@ -536,7 +536,7 @@ export default function DetalleSolicitudServicioAcademico({
                     startIcon={<VisibilityIcon />}
                     onClick={() => {
                       if (docFinal?.DocPath) {
-                        window.open(`${docFinal.DocPath}`, "_blank", "noopener,noreferrer");
+                        window.open(`https://registro.cp.unicah.net${docFinal.DocPath}`, "_blank", "noopener,noreferrer");
                       } else {
                         Swal.fire({
                           icon: "warning",
