@@ -122,7 +122,7 @@ export default function DetalleSolicitudServicioAcademico({
   const [docFinal, setDocFinal] = useState(null);
   const [notificado, setNotificado] = useState(false);
 
-  const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
+  const BASE_URL = import.meta.env.VITE_API_BASE;
 
 
   useEffect(() => {
