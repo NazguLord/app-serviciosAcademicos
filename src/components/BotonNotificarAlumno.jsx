@@ -7,7 +7,7 @@ import axios from "axios";
 
 export default function BotonNotificarAlumno({ solicitud, docCod, usrUsr, onNotificadoChange }) {
   const [notificado, setNotificado] = useState(false);
-  const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
+  const BASE_URL = import.meta.env.VITE_API_BASE;
 
   async function enviarCorreo(tipo, correo) {
     try {
@@ -24,7 +24,7 @@ export default function BotonNotificarAlumno({ solicitud, docCod, usrUsr, onNoti
           correo: correoDestino
         };
 
-        const url = `${BASE_URL}/api/asolicitud_documentos/enviarCorreo.php`;
+        const url = `${BASE_URL}asolicitud_documentos/enviarCorreo.php`;
 
         const res = await axios.post(url, payload, {
           headers: { "Content-Type": "application/json" },

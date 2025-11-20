@@ -13,7 +13,7 @@ import Swal from "sweetalert2";
 import { autorizarSolicitud } from "../api/solicitudesApi";
 import axios from "axios";
 
-const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
+const BASE_URL = import.meta.env.VITE_API_BASE;
 
 export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud }) {
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
           DocCod: docCod
         };
 
-        const url = `${BASE_URL}/api/asolicitud_documentos/enviarCorreo.php`;
+        const url = `${BASE_URL}asolicitud_documentos/enviarCorreo.php`;
 
         const res = await axios.post(url, payload, {
           headers: { "Content-Type": "application/json" },
