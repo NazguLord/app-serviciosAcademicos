@@ -10,7 +10,7 @@ import * as Yup from "yup";
 import Swal from "sweetalert2";
 import axios from "axios";
 
-const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
+const BASE_URL = import.meta.env.VITE_API_BASE;
 
 export default function ModalAdjuntarDocumentoServicioAcademico({
   open,
@@ -55,7 +55,7 @@ export default function ModalAdjuntarDocumentoServicioAcademico({
           adjuntoNombre
         };
 
-        const url = `${BASE_URL}/api/asolicitud_documentos/enviarCorreo.php`;
+        const url = `${BASE_URL}asolicitud_documentos/enviarCorreo.php`;
 
         const res = await axios.post(url, payload, {
           headers: { "Content-Type": "application/json" },
@@ -100,7 +100,7 @@ export default function ModalAdjuntarDocumentoServicioAcademico({
 
 
       const res = await axios.post(
-        `${BASE_URL}/api/asolicitud_documentos/subirDocumentoFinal.php`,
+        `${BASE_URL}asolicitud_documentos/subirDocumentoFinal.php`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

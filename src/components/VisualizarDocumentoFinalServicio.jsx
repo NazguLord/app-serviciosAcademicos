@@ -6,7 +6,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import axios from "axios";
 
 //const BASE_URL = "https://unicahdev.registro.cp.unicah.edu";
-const BASE_URL = "https://registro.cp.unicah.net";
+const BASE_URL = import.meta.env.VITE_API_BASE;
 
 
 export default function VisualizarDocumentoFinalServicio({ docCod }) {
@@ -19,7 +19,7 @@ export default function VisualizarDocumentoFinalServicio({ docCod }) {
     const fetchArchivo = async () => {
       try {
         const res = await axios.get(
-          `${BASE_URL}/api/asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${docCod}`
+          `${BASE_URL}asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${docCod}`
         );
         if (res.data.success && res.data.data) {
           setArchivo(res.data.data);
