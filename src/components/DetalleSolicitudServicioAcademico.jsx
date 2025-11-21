@@ -96,7 +96,6 @@ export default function DetalleSolicitudServicioAcademico({
   const theme = useTheme();
   const { userData } = useContext(AppContext);
   const s = solicitud; // se usa después
-  consol
 
  const permisosCORE = userData?.permissions?.CORE || {};
  const permisosBotonAdjuntar = ["CORE0314"]; // 🔸 puedes agregar más si deseas
