@@ -96,6 +96,7 @@ export default function DetalleSolicitudServicioAcademico({
   const theme = useTheme();
   const { userData } = useContext(AppContext);
   const s = solicitud; // se usa después
+  consol
 
  const permisosCORE = userData?.permissions?.CORE || {};
  const permisosBotonAdjuntar = ["CORE0314"]; // 🔸 puedes agregar más si deseas
@@ -399,7 +400,18 @@ export default function DetalleSolicitudServicioAcademico({
               ) : (
                 <Stack spacing={1}>
                   {documentos.map((doc, idx) => {
-                    const rutaCompleta = `https://registro.cp.unicah.net${doc.DocPath}`;
+                    let rutaCompleta = "";
+
+                 // 🟢 Documentos de REGISTRO (la ruta ya funciona bien)
+                 if (doc.DB === "REGISTRO" || !doc.DB) {
+                   rutaCompleta = `https://registro.cp.unicah.net${doc.DocPath}`;
+                 }
+
+                 // 🔵 Documentos de ADMISIONES (DocPath = carpeta, DocNom = archivo)
+                else if (doc.DB === "ADMISIONES") {
+                    rutaCompleta = `https://admisiones.cp.unicah.net/api/cuentas/obtener_documentos.php?CueCod=${s.CueCod}&DocTip=${doc.DocTip}`;
+                    rutaCompleta = encodeURI(rutaCompleta); // manejar espacios/acentos
+                }
 
                     return (
                       <Box
