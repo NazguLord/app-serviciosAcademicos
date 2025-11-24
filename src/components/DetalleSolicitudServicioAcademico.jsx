@@ -649,7 +649,7 @@ export default function DetalleSolicitudServicioAcademico({
 
       <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
         <Box sx={{ flex: 1 }} />
-        <Button variant="outlined" startIcon={<TimelineIcon />} onClick={() => setOpenHist(true)}>Vitacora de acciones</Button>
+        <Button variant="outlined" startIcon={<TimelineIcon />} onClick={() => setOpenHist(true)}>Bitácora de acciones</Button>
        {/*  
         {String(s?.EstNom || "").toLowerCase() === "pendiente de pago" && (
           <Button variant="contained" color="primary" onClick={() => setOpenComprobante(true)}>Pagar</Button>
