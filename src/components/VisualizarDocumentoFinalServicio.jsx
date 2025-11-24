@@ -43,7 +43,7 @@ export default function VisualizarDocumentoFinalServicio({ docCod }) {
 
   if (!archivo) return null;
 
-  const rutaCompleta = `${BASE_URL}${archivo.DocPath}`;
+  const rutaCompleta = `https://registro.cp.unicah.net${archivo.DocPath}`;
 
   return (
   <Box
