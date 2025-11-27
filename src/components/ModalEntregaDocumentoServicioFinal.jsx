@@ -10,7 +10,7 @@ export default function ModalEntregaDocumentoServicioFinal({  open,  onClose,  s
   const [comentario, setComentario] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const BASE_URL = "http://unicahdev.registro.cp.unicah.edu";
+  const BASE_URL = import.meta.env.VITE_API_BASE;
 
   // ✅ Maneja el cierre del modal y limpieza del campo
   const handleClose = () => {
@@ -36,7 +36,7 @@ export default function ModalEntregaDocumentoServicioFinal({  open,  onClose,  s
   setLoading(true);
   try {
     const res = await axios.post(
-      `${BASE_URL}/api/asolicitud_documentos/actualizarDocumentoServicioFinal.php`,
+      `${BASE_URL}asolicitud_documentos/actualizarDocumentoServicioFinal.php`,
       {
         DocCod: solicitud.DocCod,
         ComentarioServicioEntregado: comentario,
