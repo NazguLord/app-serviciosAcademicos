@@ -132,7 +132,7 @@ export default function DetalleSolicitudServicioAcademico({
       const res = await validarBiblioteca(solicitud.CueCod);
       if (res.ok) {
         setEstadoBiblioteca(res.tienePendientes ? "PDT" : "OK");
-        console.log("📚 Resultado Biblioteca:", res);
+      //  console.log("📚 Resultado Biblioteca:", res);
       } else {
         console.error("Error al consultar Biblioteca:", res.message);
       }
@@ -220,7 +220,7 @@ export default function DetalleSolicitudServicioAcademico({
 
         if (data.success && data.data) {
           setDocFinal(data.data);
-          console.log("📄 Documento final cargado:", data.data);
+        //  console.log("📄 Documento final cargado:", data.data);
         } else {
           console.warn("⚠️ No se encontró documento final:", data);
         }
@@ -278,7 +278,7 @@ export default function DetalleSolicitudServicioAcademico({
           });
   
           if (res.data?.success) {
-            console.log(`Correo enviado correctamente a ${correoDestino}`);
+          //  console.log(`Correo enviado correctamente a ${correoDestino}`);
           } else {
             console.warn(`No se pudo enviar el correo a ${correoDestino}:`, res.data);
           }
