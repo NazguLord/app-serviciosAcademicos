@@ -19,7 +19,7 @@ export const AppProvider = ({ children }) => {
       const url = import.meta.env.VITE_API_VALIDATE || '/sv/api/session_validate_react.php';
       const res = await fetch(url, { method: 'GET', credentials: 'include' }); // same-origin via proxy
       const data = await res.json();
-      console.log('🔁 Respuesta de sesión:', data);
+      //console.log('🔁 Respuesta de sesión:', data);
 
       if (data?.status === 'OK') {
         setUserData(data.userdata || {});
