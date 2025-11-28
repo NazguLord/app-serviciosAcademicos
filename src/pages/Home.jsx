@@ -56,6 +56,7 @@ const mapearSolicitudes = (datos = []) =>
     DocLeng: item.DocLeng || "-",
     DocFchCre: item.DocFchCre || null,
     DocSolObs: item.DocSolObs || "-",
+    observacionBeca: item.observacionBeca || ""
   }));
 
 const DetalleWrapper = React.memo(({ open, filaSel, onClose, onDenegar, onUpdate }) => (

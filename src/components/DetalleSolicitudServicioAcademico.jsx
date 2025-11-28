@@ -460,6 +460,37 @@ export default function DetalleSolicitudServicioAcademico({
               )}
             </Box>
           </Box>
+          
+          {/* Comentario de Becas */}
+{s?.observacionBeca && s.observacionBeca.trim() !== "" && (
+  <Box
+    sx={{
+      mt: 1,
+      mb: -1,
+      ml: 2,
+      p: 1,
+      px: 2,
+      borderLeft: "4px solid #FB8C00",
+      backgroundColor: "rgba(255, 152, 0, 0.08)",
+      borderRadius: "4px",
+      width: "fit-content"
+    }}
+  >
+    <Typography
+      variant="body2"
+      sx={{ fontWeight: 600, color: "#E65100", mb: 0.3 }}
+    >
+      Observación de becas:
+    </Typography>
+
+    <Typography
+      variant="body2"
+      sx={{ color: "#4E342E", whiteSpace: "pre-line" }}
+    >
+      {s.observacionBeca}
+    </Typography>
+  </Box>
+)}
 
           {/* ✅ Mostrar documento final solo si el estado es “En proceso de entrega” */}
           {String(etiquetaEstado || "").trim().toUpperCase() === "EN PROCESO DE ENTREGA" && (
