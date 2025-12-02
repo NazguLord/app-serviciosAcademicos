@@ -86,6 +86,7 @@ function Home() {
   const [filaSel, setFilaSel] = useState(null);
   const [tienePermisoGlobal, setTienePermisoGlobal] = useState(false);
   const estadoActual = estados[estadoTab].value;
+  const [paginationModel, setPaginationModel] = useState({  page: 0,   pageSize: 10 });
 
   // ✅ función reutilizable para cargar solicitudes
  const cargarSolicitudes = useCallback(async () => {
@@ -151,29 +152,40 @@ useEffect(() => {
 
   // Construir el mapa de estados de Biblioteca por CueCod
   useEffect(() => {
-    if (!solicitudes?.length) {
-      setBibliotecaMap({});
-      return;
-    }
-    const cueCods = [...new Set(solicitudes.map(s => s.CueCod).filter(Boolean))];
+  if (!solicitudes.length) {
+    setBibliotecaMap({});
+    return;
+  }
 
-    let cancel = false;
-    (async () => {
-      const entries = await Promise.all(
-        cueCods.map(async (cueCod) => {
-          try {
-            const r = await validarBiblioteca(cueCod);
-            const estado = r.ok ? (r.tienePendientes ? "PDT" : "OK") : undefined;
-            return [cueCod, estado];
-          } catch {
-            return [cueCod, undefined];
-          }
-        })
-      );
-      if (!cancel) setBibliotecaMap(Object.fromEntries(entries));
-    })();
-    return () => { cancel = true; };
-  }, [solicitudes]);
+  // ⭐ Calcular solicitudes visibles según paginación
+  const start = paginationModel.page * paginationModel.pageSize;
+  const end = start + paginationModel.pageSize;
+  const visibles = solicitudes.slice(start, end);
+
+  const cueCods = [...new Set(visibles.map(s => s.CueCod).filter(Boolean))];
+
+  let cancel = false;
+
+  (async () => {
+    const entries = await Promise.all(
+      cueCods.map(async (cueCod) => {
+        try {
+          const r = await validarBiblioteca(cueCod);
+          const estado = r.ok ? (r.tienePendientes ? "PDT" : "OK") : undefined;
+          return [cueCod, estado];
+        } catch {
+          return [cueCod, undefined];
+        }
+      })
+    );
+
+    if (!cancel) {
+      setBibliotecaMap(Object.fromEntries(entries));
+    }
+  })();
+
+  return () => { cancel = true; };
+}, [solicitudes, paginationModel]);
 
   const handleSearch = (e) => setBusqueda(e.target.value.toLowerCase());
 
@@ -387,6 +399,8 @@ useEffect(() => {
           cargando={cargando}
           onVerDetalle={abrirDetalle}
           bibliotecaMap={bibliotecaMap}
+          paginationModel={paginationModel}
+          setPaginationModel={setPaginationModel}
         />
       )}
 

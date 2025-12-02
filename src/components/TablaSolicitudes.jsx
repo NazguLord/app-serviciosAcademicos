@@ -15,6 +15,8 @@ const TablaSolicitudes = ({
   onVerDetalle,
   // 👇 NUEVO: mapa opcional CueCod -> "OK" | "PDT"
   bibliotecaMap = {},
+  paginationModel,          // ⭐ NUEVO
+  setPaginationModel,       // ⭐ NUEVO
 }) => {
   const theme = useTheme();
   const isMdDown = useMediaQuery(theme.breakpoints.down("md"));
@@ -183,7 +185,8 @@ const TablaSolicitudes = ({
         columns={columnas}
         columnVisibilityModel={columnVisibilityModel}
         density={isMdDown ? "compact" : "standard"}
-        initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+         paginationModel={paginationModel}
+         onPaginationModelChange={setPaginationModel}
         pageSizeOptions={[10, 25, 50]}
         sx={(theme) => ({
           borderRadius: 2,
