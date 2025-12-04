@@ -1,15 +1,16 @@
 // src/components/ModalEntregaDocumentoServicioFinal.jsx
 import {  Dialog,  DialogTitle,  DialogContent,  DialogActions,  Button,  TextField,  Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useContext } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { AppContext } from "../context/AppContext"; 
 
 export default function ModalEntregaDocumentoServicioFinal({  open,  onClose,  solicitud,  onEntregado,
 }) {
   const [comentario, setComentario] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const { userData } = useContext(AppContext);
   const BASE_URL = import.meta.env.VITE_API_BASE;
 
   // ✅ Maneja el cierre del modal y limpieza del campo
@@ -40,7 +41,7 @@ export default function ModalEntregaDocumentoServicioFinal({  open,  onClose,  s
       {
         DocCod: solicitud.DocCod,
         ComentarioServicioEntregado: comentario,
-        UsrUsr: solicitud.CueCod, // 👈 se envía el usuario que realiza la acción
+        UsrUsr: userData?.UsrUsr || userData?.username || "", // 👈 se envía el usuario que realiza la acción
       }
     );
 

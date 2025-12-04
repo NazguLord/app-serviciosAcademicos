@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 
 //Producción
 
+/*
 export default defineConfig(({ command }) => ({
   base: '/sv/' ,
   plugins: [react()],
@@ -18,10 +19,10 @@ export default defineConfig(({ command }) => ({
   }
 }));
 
-
+*/
 // Desarollo
 
-/*
+
 export default defineConfig(({ command }) => ({
   base: '/sv/' ,
   plugins: [react()],
@@ -37,4 +38,3 @@ export default defineConfig(({ command }) => ({
   }
 }));
 
-*/

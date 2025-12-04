@@ -720,7 +720,7 @@ export default function DetalleSolicitudServicioAcademico({
                 <BotonNotificarAlumno
                   solicitud={solicitud}
                   docCod={s?.DocCod}
-                  usrUsr={s?.CueCod} // puedes cambiar por usuario del sistema si aplica
+                   usrUsr={userData?.UsrUsr || userData?.username || ""} // puedes cambiar por usuario del sistema si aplica
                   onNotificadoChange={setNotificado}
                 />
               )}
