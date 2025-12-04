@@ -1,5 +1,5 @@
 // src/components/ModalAdjuntarDocumentoServicioAcademico.jsx
-import React, { useState } from "react";
+import React, { useState, useContext  } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, CircularProgress, Box, Typography
@@ -9,6 +9,7 @@ import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import Swal from "sweetalert2";
 import axios from "axios";
+import { AppContext } from "../context/AppContext"; 
 
 const BASE_URL = import.meta.env.VITE_API_BASE;
 
@@ -19,6 +20,7 @@ export default function ModalAdjuntarDocumentoServicioAcademico({
   onUpdate,
   onSuccess,
 }) {
+  const { userData } = useContext(AppContext); 
   const [subiendo, setSubiendo] = useState(false);
 
   const validationSchema = Yup.object().shape({
@@ -89,6 +91,7 @@ export default function ModalAdjuntarDocumentoServicioAcademico({
     formData.append("archivo", values.archivo);
     formData.append("DocCod", solicitud.DocCod);
     formData.append("CueReg", solicitud.CueReg);
+    formData.append("UsrUsr", userData.UsrUsr || "");
     formData.append("Accion", "Subida de documento final");
 
     try {
