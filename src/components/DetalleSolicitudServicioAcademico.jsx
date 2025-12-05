@@ -698,18 +698,35 @@ export default function DetalleSolicitudServicioAcademico({
           <Button variant="outlined" color="error" onClick={() => setOpenDenegar(true)}>Denegar</Button>
         )}
         {/* ✅ Mostrar botón solo si el estado actual es "En proceso" (PGD) */}
-        {["PGD", "EN PROCESO"].includes(
-  String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
-) && tienePermisoAdjuntar && (
-  <Button
-    variant="contained"
-    color="primary"
-    sx={{ fontWeight: 700 }}
-    onClick={() => setOpenAdjuntar(true)}
-  >
-    Adjuntar documento final
-  </Button>
-)}
+        {(() => {
+  const estadoActual = String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase();
+  const esEnProceso = ["PGD", "EN PROCESO"].includes(estadoActual);
+
+  // 👇 Servicio especial permitido sin permiso CORE0314
+  const esConstanciaEspecial =
+    String(s?.DocNom || "").trim().toLowerCase() === "constancias nacionales" &&
+    String(s?.DocLeng || "").trim().toUpperCase() === "ESP";
+
+  // 👇 Lógica final:
+  // 1) Si tiene permiso CORE0314 → puede adjuntar normal
+  // 2) Si NO tiene permiso pero es constancia ESP en proceso → también puede
+  const puedeAdjuntar =
+    tienePermisoAdjuntar || (esConstanciaEspecial && esEnProceso);
+
+  return (
+    esEnProceso &&
+    puedeAdjuntar && (
+      <Button
+        variant="contained"
+        color="primary"
+        sx={{ fontWeight: 700 }}
+        onClick={() => setOpenAdjuntar(true)}
+      >
+        Adjuntar documento final
+      </Button>
+    )
+  );
+})()}
         {/* ✅ Mostrar botón solo si el estado actual es "En proceso de entrega" (CMP) */}
         {["CMP", "EN PROCESO DE ENTREGA"].includes(
           String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
