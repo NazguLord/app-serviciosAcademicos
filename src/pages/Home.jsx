@@ -78,6 +78,7 @@ function Home() {
   const [estadoTab, setEstadoTab] = useState(0);
   const [solicitudes, setSolicitudes] = useState([]);
   const [bibliotecaMap, setBibliotecaMap] = useState({});
+  const [filasVisibles, setFilasVisibles] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState("");
   const [listaCampus, setListaCampus] = useState([]);
@@ -150,19 +151,11 @@ useEffect(() => {
     if (campusSeleccionado) cargarSolicitudes();
   }, [campusSeleccionado, estadoTab, cargarSolicitudes]);
 
-  // Construir el mapa de estados de Biblioteca por CueCod
-  useEffect(() => {
-  if (!solicitudes.length) {
-    setBibliotecaMap({});
-    return;
-  }
+ // ⭐ Nuevo cálculo: basado en filas realmente visibles en la tabla
+useEffect(() => {
+  if (!filasVisibles.length) return;
 
-  // ⭐ Calcular solicitudes visibles según paginación
-  const start = paginationModel.page * paginationModel.pageSize;
-  const end = start + paginationModel.pageSize;
-  const visibles = solicitudes.slice(start, end);
-
-  const cueCods = [...new Set(visibles.map(s => s.CueCod).filter(Boolean))];
+  const cueCods = [...new Set(filasVisibles.map(f => f.CueCod))];
 
   let cancel = false;
 
@@ -171,8 +164,7 @@ useEffect(() => {
       cueCods.map(async (cueCod) => {
         try {
           const r = await validarBiblioteca(cueCod);
-          const estado = r.ok ? (r.tienePendientes ? "PDT" : "OK") : undefined;
-          return [cueCod, estado];
+          return [cueCod, r.ok ? (r.tienePendientes ? "PDT" : "OK") : undefined];
         } catch {
           return [cueCod, undefined];
         }
@@ -185,7 +177,7 @@ useEffect(() => {
   })();
 
   return () => { cancel = true; };
-}, [solicitudes, paginationModel]);
+}, [filasVisibles]);
 
   const handleSearch = (e) => setBusqueda(e.target.value.toLowerCase());
 
@@ -251,7 +243,11 @@ useEffect(() => {
 
   const abrirDetalle = (row, e) => {
     e?.currentTarget?.blur?.();
-    setFilaSel(row);
+     const estadoBiblioteca = bibliotecaMap[row.CueCod] || "PDT";
+     setFilaSel({
+      ...row,
+      _estadoBiblioteca: estadoBiblioteca   // ⭐ nuevo campo
+   });
     setTimeout(() => setOpenDetalle(true), 0);
   };
   const cerrarDetalle = () => setOpenDetalle(false);
@@ -401,6 +397,7 @@ useEffect(() => {
           bibliotecaMap={bibliotecaMap}
           paginationModel={paginationModel}
           setPaginationModel={setPaginationModel}
+          onVisibleRowsChange={setFilasVisibles}
         />
       )}
 

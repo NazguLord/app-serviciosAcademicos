@@ -17,6 +17,7 @@ const TablaSolicitudes = ({
   bibliotecaMap = {},
   paginationModel,          // ⭐ NUEVO
   setPaginationModel,       // ⭐ NUEVO
+  onVisibleRowsChange,
 }) => {
   const theme = useTheme();
   const isMdDown = useMediaQuery(theme.breakpoints.down("md"));
@@ -176,6 +177,12 @@ const TablaSolicitudes = ({
       ),
     [solicitudes, busqueda]
   );
+  
+React.useEffect(() => {
+  if (onVisibleRowsChange) {
+    onVisibleRowsChange(filteredRows);
+  }
+}, [filteredRows, onVisibleRowsChange]);
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>

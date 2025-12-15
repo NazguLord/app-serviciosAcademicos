@@ -114,7 +114,7 @@ export default function DetalleSolicitudServicioAcademico({
 
   const [documentos, setDocumentos] = useState([]);
   const [cargandoDocs, setCargandoDocs] = useState(false);
-  const [estadoBiblioteca, setEstadoBiblioteca] = useState(null);
+  const estadoBiblioteca = solicitud?._estadoBiblioteca || "PDT";
   const [openAdjuntar, setOpenAdjuntar] = useState(false);
   const [estadoDocLocal, setEstadoDocLocal] = useState(s?.DocEst || "");
   const [etiquetaEstado, setEtiquetaEstado] = useState(s?.EstNom || "");
@@ -125,21 +125,7 @@ export default function DetalleSolicitudServicioAcademico({
   const BASE_URL = import.meta.env.VITE_API_BASE;
 
 
-  useEffect(() => {
-    if (!solicitud?.CueCod) return;
-
-    async function verificarBiblioteca() {
-      const res = await validarBiblioteca(solicitud.CueCod);
-      if (res.ok) {
-        setEstadoBiblioteca(res.tienePendientes ? "PDT" : "OK");
-      //  console.log("📚 Resultado Biblioteca:", res);
-      } else {
-        console.error("Error al consultar Biblioteca:", res.message);
-      }
-    }
-
-    verificarBiblioteca();
-  }, [solicitud?.CueCod]);
+  
 
   useEffect(() => {
     setEstadoDocLocal(s?.DocEst || "");
