@@ -93,10 +93,10 @@ export default function DetalleSolicitudServicioAcademico({
   onDenegar,
   onUpdate,
 }) {
+  
   const theme = useTheme();
   const { userData } = useContext(AppContext);
   const s = solicitud; // se usa después
-
  const permisosCORE = userData?.permissions?.CORE || {};
  const permisosBotonAdjuntar = ["CORE0314"]; // 🔸 puedes agregar más si deseas
  const tienePermisoAdjuntar = permisosBotonAdjuntar.some((permiso) => permisosCORE?.[permiso]);
@@ -321,7 +321,10 @@ export default function DetalleSolicitudServicioAcademico({
             <Grid item xs={12} sm={6}><Typography fontWeight={700}>Documento:</Typography><Typography>{s?.DocNom || "-"}{s?.DocLeng && ` (${s.DocLeng})`}</Typography></Grid>
             <Grid item xs={12} sm={6}><Typography fontWeight={700}>Correo:</Typography><Typography>{s?.CueMail && s.CueMail !== "-" ? <a href={`mailto:${s.CueMail}`}>{s.CueMail}</a> : "-"}</Typography></Grid>
             <Grid item xs={12} sm={6}><Typography fontWeight={700}>Fecha de solicitud:</Typography>{formatFechaSoloDia(s?.DocFchCre)}</Grid>
+            <Grid item xs={12} sm={6} md={3}><Typography fontWeight="bold">Valor del servicio:</Typography><Typography>{s.DocVal ? `L. ${Number(s.DocVal).toLocaleString('es-HN')}`  : "N/A"}</Typography></Grid>
+            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Campus de entrega:</Typography><Typography>{s?.CamNomEsp || "-"}</Typography></Grid>
           </Grid>
+
           <Divider />
           {/* Dependencias */}
           <Stack direction="row" spacing={3} justifyContent="center" alignItems="center" flexWrap="wrap">
