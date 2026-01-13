@@ -125,8 +125,6 @@ export default function DetalleSolicitudServicioAcademico({
   const BASE_URL = import.meta.env.VITE_API_BASE;
 
 
-  
-
   useEffect(() => {
     setEstadoDocLocal(s?.DocEst || "");
     setEtiquetaEstado(s?.EstNom || "");
@@ -225,14 +223,24 @@ export default function DetalleSolicitudServicioAcademico({
   ["OK", "SOLVENTE"].includes(String(s?.EstReg).toUpperCase()) &&
   ["OK", "SOLVENTE"].includes(String(estadoBiblioteca || "").toUpperCase());
 
+  const docNomLower = String(s?.DocNom || "").trim().toLowerCase();
+  const docLengUpper = String(s?.DocLeng || "").trim().toUpperCase();
+
+  const esCarnet =
+  String(s?.DocTip ?? "") === "9" ||
+  docNomLower.includes("reposición de carné") ||
+  (docNomLower.includes("reposición de carné") && docLengUpper === "ESP");
+
   // ⚠️ Este return puede ir tranquilo después de los hooks
  // console.log("🧠 Datos de solicitud:", s);
  // console.log("📄 Valor real de DocEst:", s?.EstNom);
   if (!s) return null;
-
-  const puedeDenegar = String(s?.EstNom || "").toLowerCase().startsWith("pendient");
-  const puedeAutorizar = String(s?.EstNom || "").toLowerCase() === "pendiente" && todosOk;
-
+  
+  const estNomLower = String(s?.EstNom || "").trim().toLowerCase();
+  const esPendiente = estNomLower === "pendiente";
+  const puedeDenegar = estNomLower.startsWith("pendient");
+  const puedeAutorizar = esPendiente && (esCarnet || todosOk);
+  
   const safeClose = () => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -278,7 +286,7 @@ export default function DetalleSolicitudServicioAcademico({
 
   
 
-  const mostrarBotonRegistro = String(s?.EstReg || "").toUpperCase() === "PDT";
+  const mostrarBotonRegistro =  String(s?.EstReg || "").toUpperCase() === "PDT" && !esCarnet;
 
   /* ---------- Render principal ---------- */
   return (
@@ -691,20 +699,20 @@ export default function DetalleSolicitudServicioAcademico({
   const estadoActual = String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase();
   const esEnProceso = ["PGD", "EN PROCESO"].includes(estadoActual);
 
-  // 👇 Servicio especial permitido sin permiso CORE0314
+  // ✅ carnet NO adjunta documento final nunca
+  if (esCarnet) return null;
+
   const esConstanciaEspecial =
     String(s?.DocNom || "").trim().toLowerCase() === "constancias nacionales" &&
     String(s?.DocLeng || "").trim().toUpperCase() === "ESP";
 
-  // 👇 Lógica final:
-  // 1) Si tiene permiso CORE0314 → puede adjuntar normal
-  // 2) Si NO tiene permiso pero es constancia ESP en proceso → también puede
   const puedeAdjuntar =
     tienePermisoAdjuntar || (esConstanciaEspecial && esEnProceso);
 
   return (
     esEnProceso &&
-    puedeAdjuntar && (
+    puedeAdjuntar && 
+    !esCarnet && (
       <Button
         variant="contained"
         color="primary"
@@ -717,33 +725,44 @@ export default function DetalleSolicitudServicioAcademico({
   );
 })()}
         {/* ✅ Mostrar botón solo si el estado actual es "En proceso de entrega" (CMP) */}
-        {["CMP", "EN PROCESO DE ENTREGA"].includes(
-          String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase()
-        ) && (
-            <>
-              {/* 🔹 Si NO ha sido notificado, mostrar botón azul */}
-              {!notificado && (
-                <BotonNotificarAlumno
-                  solicitud={solicitud}
-                  docCod={s?.DocCod}
-                   usrUsr={userData?.UsrUsr || userData?.username || ""} // puedes cambiar por usuario del sistema si aplica
-                  onNotificadoChange={setNotificado}
-                />
-              )}
+        {(() => {
+  const estadoActual = String(estadoDocLocal || etiquetaEstado || "")
+    .trim()
+    .toUpperCase();
 
-              {/* 🔹 Si ya fue notificado, mostrar botón verde */}
-              {notificado && (
-                <Button
-                  variant="contained"
-                  color="success"
-                  sx={{ fontWeight: 700 }}
-                  onClick={() => setOpenEntrega(true)}
-                >
-                  Marcar como entregado
-                </Button>
-              )}
-            </>
-          )}
+  const esCMP = ["CMP", "EN PROCESO DE ENTREGA"].includes(estadoActual);
+  const esPGD = ["PGD", "EN PROCESO"].includes(estadoActual);
+
+  // ✅ Normal: solo CMP
+  // ✅ Carné: permitir también en PGD
+  const habilitarNotificar = esCMP || (esCarnet && esPGD);
+
+  if (!habilitarNotificar) return null;
+
+  return (
+    <>
+      {!notificado && (
+        <BotonNotificarAlumno
+          solicitud={solicitud}
+          docCod={s?.DocCod}
+          usrUsr={userData?.UsrUsr || userData?.username || ""}
+          onNotificadoChange={setNotificado}
+        />
+      )}
+
+      {notificado && (
+        <Button
+          variant="contained"
+          color="success"
+          sx={{ fontWeight: 700 }}
+          onClick={() => setOpenEntrega(true)}
+        >
+          Marcar como entregado
+        </Button>
+      )}
+    </>
+  );
+})()}
         <Button onClick={safeClose}>Cerrar</Button>
 
       </DialogActions>
