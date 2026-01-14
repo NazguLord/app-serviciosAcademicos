@@ -2,6 +2,7 @@
 import React, { useMemo } from "react";
 import { Box, Tooltip, IconButton, alpha, useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ManageSearchRoundedIcon from "@mui/icons-material/ManageSearchRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
@@ -28,6 +29,17 @@ const TablaSolicitudes = ({
     EstNom: !isSmDown,
   };
 
+  const esCarnetRow = (row) => {
+  const docNomLower = String(row?.DocNom || "").trim().toLowerCase();
+  const docLengUpper = String(row?.DocLeng || "").trim().toUpperCase();
+
+  return (
+    String(row?.DocTip ?? "") === "9" ||
+    docNomLower.includes("reposición de carné") ||
+    (docNomLower.includes("reposición de carné") && docLengUpper === "ESP")
+  );
+};
+
   const estadoColor = (nombre = "") => {
     const txt = String(nombre).trim().toLowerCase();
     if (txt.includes("deneg")) return theme.palette.error.main;
@@ -36,6 +48,14 @@ const TablaSolicitudes = ({
     if (txt.startsWith("pendient")) return theme.palette.warning.light;
     return theme.palette.text.secondary;
   };
+
+const renderNoAplica = () => (
+  <Tooltip title="No aplica (Reposición de carné)">
+    <InfoOutlinedIcon
+      sx={{ fontSize: 20, color: theme.palette.text.secondary }}
+    />
+  </Tooltip>
+);
 
  const renderCheck = (value) => {
   const v = String(value ?? "").trim().toUpperCase();
@@ -98,25 +118,50 @@ const TablaSolicitudes = ({
     },
     { field: "DocNom", headerName: "Documento", width: 220, minWidth: 100, headerAlign: "center" },
 
-    { field: "BecNom", headerName: "Becas", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
-    { field: "EstCont", headerName: "Contabilidad", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
+    {
+  field: "BecNom",
+  headerName: "Becas",
+  flex: 0.28,
+  minWidth: 58,
+  headerAlign: "center",
+  align: "center",
+  renderCell: (p) => (esCarnetRow(p.row) ? renderNoAplica() : renderCheck(p.value)),
+},
+    {
+  field: "EstCont",
+  headerName: "Contabilidad",
+  flex: 0.28,
+  minWidth: 58,
+  headerAlign: "center",
+  align: "center",
+  renderCell: (p) => (esCarnetRow(p.row) ? renderNoAplica() : renderCheck(p.value)),
+},
 
     // 👇 CAMBIADO: la celda usa el mapa si existe, si no, cae a CorNom (comportamiento actual)
     {
-      field: "Biblioteca",
-      headerName: "Biblioteca",
-      flex: 0.28,
-      minWidth: 58,
-      headerAlign: "center",
-      align: "center",
-      sortable: false,
-      renderCell: (p) => {
-        const estado = bibliotecaMap?.[p.row.CueCod] ?? p.row.CorNom;
-        return renderCheck(estado);
-      },
-    },
+  field: "Biblioteca",
+  headerName: "Biblioteca",
+  flex: 0.28,
+  minWidth: 58,
+  headerAlign: "center",
+  align: "center",
+  sortable: false,
+  renderCell: (p) => {
+    if (esCarnetRow(p.row)) return renderNoAplica();
+    const estado = bibliotecaMap?.[p.row.CueCod] ?? p.row.CorNom;
+    return renderCheck(estado);
+  },
+},
 
-    { field: "EstReg", headerName: "Registro", flex: 0.28, minWidth: 58, headerAlign: "center", align: "center", renderCell: (p) => renderCheck(p.value) },
+    {
+  field: "EstReg",
+  headerName: "Registro",
+  flex: 0.28,
+  minWidth: 58,
+  headerAlign: "center",
+  align: "center",
+  renderCell: (p) => (esCarnetRow(p.row) ? renderNoAplica() : renderCheck(p.value)),
+},
 
     {
       field: "EstNom",

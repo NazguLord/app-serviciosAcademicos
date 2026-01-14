@@ -2,8 +2,20 @@
 import React, { useState, useEffect, lazy, Suspense, useContext } from "react";
 import { AppContext } from "../context/AppContext";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions, Box, Typography, Chip, Stack, Grid, Divider,
-  IconButton, Button, DialogContentText, CircularProgress
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Box,
+  Typography,
+  Chip,
+  Stack,
+  Grid,
+  Divider,
+  IconButton,
+  Button,
+  DialogContentText,
+  CircularProgress,
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -11,6 +23,7 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import CloseIcon from "@mui/icons-material/Close";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Swal from "sweetalert2";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import HorizontalRuleRoundedIcon from "@mui/icons-material/HorizontalRuleRounded";
@@ -34,7 +47,11 @@ const formatFechaSoloDia = (input) => {
   if (!input) return "-";
   const d = new Date(input);
   if (Number.isNaN(d.getTime())) return String(input).split(" ")[0];
-  return d.toLocaleDateString("es-HN", { day: "numeric", month: "numeric", year: "numeric" });
+  return d.toLocaleDateString("es-HN", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  });
 };
 
 const estadoColorLocal = (theme, nombre = "") => {
@@ -48,7 +65,9 @@ const estadoColorLocal = (theme, nombre = "") => {
 
 const ChipSemaforo = React.memo(function ChipSemaforo({ valor }) {
   const theme = useTheme();
-  const v = String(valor ?? "").trim().toUpperCase();
+  const v = String(valor ?? "")
+    .trim()
+    .toUpperCase();
 
   let color = theme.palette.warning.main;
   let icon = <HorizontalRuleRoundedIcon />;
@@ -85,6 +104,27 @@ const ChipSemaforo = React.memo(function ChipSemaforo({ valor }) {
   );
 });
 
+const ChipNoAplica = React.memo(function ChipNoAplica({ label = "No aplica" }) {
+  const theme = useTheme();
+  const color = theme.palette.text.secondary;
+
+  return (
+    <Chip
+      size="small"
+      variant="outlined"
+      icon={<InfoOutlinedIcon />}
+      label={label}
+      sx={{
+        color,
+        borderColor: alpha(color, 0.35),
+        fontWeight: 700,
+        height: 28,
+        bgcolor: alpha(color, 0.06),
+      }}
+    />
+  );
+});
+
 /* ---------- componente principal ---------- */
 export default function DetalleSolicitudServicioAcademico({
   open,
@@ -93,13 +133,14 @@ export default function DetalleSolicitudServicioAcademico({
   onDenegar,
   onUpdate,
 }) {
-  
   const theme = useTheme();
   const { userData } = useContext(AppContext);
   const s = solicitud; // se usa después
- const permisosCORE = userData?.permissions?.CORE || {};
- const permisosBotonAdjuntar = ["CORE0314"]; // 🔸 puedes agregar más si deseas
- const tienePermisoAdjuntar = permisosBotonAdjuntar.some((permiso) => permisosCORE?.[permiso]);
+  const permisosCORE = userData?.permissions?.CORE || {};
+  const permisosBotonAdjuntar = ["CORE0314"]; // 🔸 puedes agregar más si deseas
+  const tienePermisoAdjuntar = permisosBotonAdjuntar.some(
+    (permiso) => permisosCORE?.[permiso]
+  );
 
   const [openDenegar, setOpenDenegar] = useState(false);
   const [openHist, setOpenHist] = useState(false);
@@ -124,7 +165,6 @@ export default function DetalleSolicitudServicioAcademico({
 
   const BASE_URL = import.meta.env.VITE_API_BASE;
 
-
   useEffect(() => {
     setEstadoDocLocal(s?.DocEst || "");
     setEtiquetaEstado(s?.EstNom || "");
@@ -133,12 +173,11 @@ export default function DetalleSolicitudServicioAcademico({
   /* ✅ Traer documentos al abrir el modal */
   useEffect(() => {
     if (open && s?.CueCod) {
-    //  console.log("🔍 Datos enviados al endpoint:");
-    //  console.log("CueCod:", s?.CueCod);
-    //  console.log("CueReg:", s?.CueReg);
-    //  console.log("DocCod:", s?.DocCod);
-    //  console.log("DocReg:", s?.DocReg);
-
+      //  console.log("🔍 Datos enviados al endpoint:");
+      //  console.log("CueCod:", s?.CueCod);
+      //  console.log("CueReg:", s?.CueReg);
+      //  console.log("DocCod:", s?.DocCod);
+      //  console.log("DocReg:", s?.DocReg);
 
       const fetchDocs = async () => {
         setCargandoDocs(true);
@@ -152,13 +191,15 @@ export default function DetalleSolicitudServicioAcademico({
           }
 
           if (!cueRegFinal) {
-            console.warn("⚠️ No se encontró ningún identificador válido para CueReg.");
+            console.warn(
+              "⚠️ No se encontró ningún identificador válido para CueReg."
+            );
             setDocumentos([]);
             setCargandoDocs(false);
             return;
           }
 
-         // console.log("👉 Usando CueRegFinal:", cueRegFinal);
+          // console.log("👉 Usando CueRegFinal:", cueRegFinal);
 
           const res = await fetch(
             `${BASE_URL}agestiones/documentos/buscar.php?CueCod=${s.CueCod}&CueReg=${cueRegFinal}&filterslength=0&pagenum=0&pagesize=10&page=0&limit=10`
@@ -178,7 +219,10 @@ export default function DetalleSolicitudServicioAcademico({
           if (Array.isArray(data.data)) {
             setDocumentos(data.data);
           } else {
-            console.warn("⚠️ No se encontró arreglo 'data' en respuesta:", data);
+            console.warn(
+              "⚠️ No se encontró arreglo 'data' en respuesta:",
+              data
+            );
             setDocumentos([]);
           }
         } catch (err) {
@@ -193,18 +237,27 @@ export default function DetalleSolicitudServicioAcademico({
     }
   }, [open, s]);
 
-
   useEffect(() => {
-    if (!s?.DocCod || !["FIN", "ENTREGADO"].includes(String(etiquetaEstado || "").trim().toUpperCase())) return;
+    if (
+      !s?.DocCod ||
+      !["FIN", "ENTREGADO"].includes(
+        String(etiquetaEstado || "")
+          .trim()
+          .toUpperCase()
+      )
+    )
+      return;
 
     const fetchDocFinal = async () => {
       try {
-        const res = await fetch(`${BASE_URL}asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${s.DocCod}`);
+        const res = await fetch(
+          `${BASE_URL}asolicitud_documentos/mostrarDocumentoFinal.php?DocCod=${s.DocCod}`
+        );
         const data = await res.json();
 
         if (data.success && data.data) {
           setDocFinal(data.data);
-        //  console.log("📄 Documento final cargado:", data.data);
+          //  console.log("📄 Documento final cargado:", data.data);
         } else {
           console.warn("⚠️ No se encontró documento final:", data);
         }
@@ -218,29 +271,35 @@ export default function DetalleSolicitudServicioAcademico({
 
   /* ✅ Verificar si todos los chips están en OK */
   const todosOk =
-  ["OK", "SOLVENTE"].includes(String(s?.BecNom).toUpperCase()) &&
-  ["OK", "SOLVENTE"].includes(String(s?.EstCont).toUpperCase()) &&
-  ["OK", "SOLVENTE"].includes(String(s?.EstReg).toUpperCase()) &&
-  ["OK", "SOLVENTE"].includes(String(estadoBiblioteca || "").toUpperCase());
+    ["OK", "SOLVENTE"].includes(String(s?.BecNom).toUpperCase()) &&
+    ["OK", "SOLVENTE"].includes(String(s?.EstCont).toUpperCase()) &&
+    ["OK", "SOLVENTE"].includes(String(s?.EstReg).toUpperCase()) &&
+    ["OK", "SOLVENTE"].includes(String(estadoBiblioteca || "").toUpperCase());
 
-  const docNomLower = String(s?.DocNom || "").trim().toLowerCase();
-  const docLengUpper = String(s?.DocLeng || "").trim().toUpperCase();
+  const docNomLower = String(s?.DocNom || "")
+    .trim()
+    .toLowerCase();
+  const docLengUpper = String(s?.DocLeng || "")
+    .trim()
+    .toUpperCase();
 
   const esCarnet =
-  String(s?.DocTip ?? "") === "9" ||
-  docNomLower.includes("reposición de carné") ||
-  (docNomLower.includes("reposición de carné") && docLengUpper === "ESP");
+    String(s?.DocTip ?? "") === "9" ||
+    docNomLower.includes("reposición de carné") ||
+    (docNomLower.includes("reposición de carné") && docLengUpper === "ESP");
 
   // ⚠️ Este return puede ir tranquilo después de los hooks
- // console.log("🧠 Datos de solicitud:", s);
- // console.log("📄 Valor real de DocEst:", s?.EstNom);
+  // console.log("🧠 Datos de solicitud:", s);
+  // console.log("📄 Valor real de DocEst:", s?.EstNom);
   if (!s) return null;
-  
-  const estNomLower = String(s?.EstNom || "").trim().toLowerCase();
+
+  const estNomLower = String(s?.EstNom || "")
+    .trim()
+    .toLowerCase();
   const esPendiente = estNomLower === "pendiente";
   const puedeDenegar = estNomLower.startsWith("pendient");
   const puedeAutorizar = esPendiente && (esCarnet || todosOk);
-  
+
   const safeClose = () => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -249,44 +308,44 @@ export default function DetalleSolicitudServicioAcademico({
   };
 
   async function enviarCorreo(tipo, correo, obs) {
-      try {
-        if (!Array.isArray(correo) || correo.length === 0) {
-          console.warn("No hay correos válidos.");
-          return;
-        }
-  
-        for (const c of correo) {
-          const correoDestino = typeof c === "string" ? c : c.correo;
-  
-          const payload = {
-            tipo,
-            correo: correoDestino,
-            Obs: obs
-          };
-  
-          const url = `${BASE_URL}asolicitud_documentos/enviarCorreo.php`;
-  
-          const res = await axios.post(url, payload, {
-            headers: { "Content-Type": "application/json" },
-            withCredentials: true
-          });
-  
-          if (res.data?.success) {
-          //  console.log(`Correo enviado correctamente a ${correoDestino}`);
-          } else {
-            console.warn(`No se pudo enviar el correo a ${correoDestino}:`, res.data);
-          }
-        }
-  
-      } catch (error) {
-        console.error("Error al enviar correos:", error);
+    try {
+      if (!Array.isArray(correo) || correo.length === 0) {
+        console.warn("No hay correos válidos.");
+        return;
       }
+
+      for (const c of correo) {
+        const correoDestino = typeof c === "string" ? c : c.correo;
+
+        const payload = {
+          tipo,
+          correo: correoDestino,
+          Obs: obs,
+        };
+
+        const url = `${BASE_URL}asolicitud_documentos/enviarCorreo.php`;
+
+        const res = await axios.post(url, payload, {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        });
+
+        if (res.data?.success) {
+          //  console.log(`Correo enviado correctamente a ${correoDestino}`);
+        } else {
+          console.warn(
+            `No se pudo enviar el correo a ${correoDestino}:`,
+            res.data
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error al enviar correos:", error);
     }
+  }
 
-
-  
-
-  const mostrarBotonRegistro =  String(s?.EstReg || "").toUpperCase() === "PDT" && !esCarnet;
+  const mostrarBotonRegistro =
+    String(s?.EstReg || "").toUpperCase() === "PDT" && !esCarnet;
 
   /* ---------- Render principal ---------- */
   return (
@@ -301,87 +360,185 @@ export default function DetalleSolicitudServicioAcademico({
       disableRestoreFocus
     >
       <DialogTitle sx={{ pr: 8, py: 1.5 }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pr: 4 }}>
-          <Typography variant="h6" fontWeight={700}>Detalle de solicitud</Typography>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            pr: 4,
+          }}
+        >
+          <Typography variant="h6" fontWeight={700}>
+            Detalle de solicitud
+          </Typography>
           <Chip
             label={etiquetaEstado || "-"}
             sx={{
-              bgcolor: alpha(estadoColorLocal(theme, etiquetaEstado || ""), 0.12),
+              bgcolor: alpha(
+                estadoColorLocal(theme, etiquetaEstado || ""),
+                0.12
+              ),
               color: estadoColorLocal(theme, etiquetaEstado || ""),
               fontWeight: 700,
             }}
           />
         </Box>
-        <IconButton onClick={safeClose} sx={{ position: "absolute", right: 8, top: 8 }}>
+        <IconButton
+          onClick={safeClose}
+          sx={{ position: "absolute", right: 8, top: 8 }}
+        >
           <CloseRoundedIcon />
         </IconButton>
       </DialogTitle>
 
       <DialogContent dividers>
-
         <Stack spacing={2}>
           {/* Datos principales */}
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Cuenta:</Typography><Typography>{s?.CueCod || "-"}</Typography></Grid>
-            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Alumno:</Typography><Typography>{s?.AluNom || "-"}</Typography></Grid>
-            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Carrera / Plan:</Typography><Typography>{s?.PlaNomEsp || "-"}</Typography></Grid>
-            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Teléfono:</Typography><Typography>{s?.CueTel || "-"}</Typography></Grid>
-            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Documento:</Typography><Typography>{s?.DocNom || "-"}{s?.DocLeng && ` (${s.DocLeng})`}</Typography></Grid>
-            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Correo:</Typography><Typography>{s?.CueMail && s.CueMail !== "-" ? <a href={`mailto:${s.CueMail}`}>{s.CueMail}</a> : "-"}</Typography></Grid>
-            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Fecha de solicitud:</Typography>{formatFechaSoloDia(s?.DocFchCre)}</Grid>
-            <Grid item xs={12} sm={6} md={3}><Typography fontWeight="bold">Valor del servicio:</Typography><Typography>{s.DocVal ? `L. ${Number(s.DocVal).toLocaleString('es-HN')}`  : "N/A"}</Typography></Grid>
-            <Grid item xs={12} sm={6}><Typography fontWeight={700}>Campus de entrega:</Typography><Typography>{s?.CamNomEsp || "-"}</Typography></Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography fontWeight={700}>Cuenta:</Typography>
+              <Typography>{s?.CueCod || "-"}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography fontWeight={700}>Alumno:</Typography>
+              <Typography>{s?.AluNom || "-"}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography fontWeight={700}>Carrera / Plan:</Typography>
+              <Typography>{s?.PlaNomEsp || "-"}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography fontWeight={700}>Teléfono:</Typography>
+              <Typography>{s?.CueTel || "-"}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography fontWeight={700}>Documento:</Typography>
+              <Typography>
+                {s?.DocNom || "-"}
+                {s?.DocLeng && ` (${s.DocLeng})`}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography fontWeight={700}>Correo:</Typography>
+              <Typography>
+                {s?.CueMail && s.CueMail !== "-" ? (
+                  <a href={`mailto:${s.CueMail}`}>{s.CueMail}</a>
+                ) : (
+                  "-"
+                )}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography fontWeight={700}>Fecha de solicitud:</Typography>
+              {formatFechaSoloDia(s?.DocFchCre)}
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography fontWeight="bold">Valor del servicio:</Typography>
+              <Typography>
+                {s.DocVal
+                  ? `L. ${Number(s.DocVal).toLocaleString("es-HN")}`
+                  : "N/A"}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography fontWeight={700}>Campus de entrega:</Typography>
+              <Typography>{s?.CamNomEsp || "-"}</Typography>
+            </Grid>
           </Grid>
 
           <Divider />
           {/* Dependencias */}
-          <Stack direction="row" spacing={3} justifyContent="center" alignItems="center" flexWrap="wrap">
-            <Stack direction="row" spacing={1}><Typography><b>Becas</b></Typography><ChipSemaforo valor={s?.BecNom} /></Stack>
-            <Stack direction="row" spacing={1}><Typography><b>Contabilidad</b></Typography><ChipSemaforo valor={s?.EstCont} /></Stack>
-            <Stack direction="row" spacing={1}><Typography><b>Biblioteca</b></Typography><ChipSemaforo valor={estadoBiblioteca} /></Stack>
-            <Stack direction="row" spacing={1}><Typography><b>Registro</b></Typography><ChipSemaforo valor={s?.EstReg} /></Stack>
+          <Stack
+            direction="row"
+            spacing={3}
+            justifyContent="center"
+            alignItems="center"
+            flexWrap="wrap"
+          >
+            <Stack direction="row" spacing={1}>
+              <Typography>
+                <b>Becas</b>
+              </Typography>
+              {esCarnet ? <ChipNoAplica /> : <ChipSemaforo valor={s?.BecNom} />}
+            </Stack>
+
+            <Stack direction="row" spacing={1}>
+              <Typography>
+                <b>Contabilidad</b>
+              </Typography>
+              {esCarnet ? (
+                <ChipNoAplica />
+              ) : (
+                <ChipSemaforo valor={s?.EstCont} />
+              )}
+            </Stack>
+
+            <Stack direction="row" spacing={1}>
+              <Typography>
+                <b>Biblioteca</b>
+              </Typography>
+              {esCarnet ? (
+                <ChipNoAplica />
+              ) : (
+                <ChipSemaforo valor={estadoBiblioteca} />
+              )}
+            </Stack>
+
+            <Stack direction="row" spacing={1}>
+              <Typography>
+                <b>Registro</b>
+              </Typography>
+              {esCarnet ? <ChipNoAplica /> : <ChipSemaforo valor={s?.EstReg} />}
+            </Stack>
           </Stack>
 
           {/* Documentos adjuntos */}
           <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
-          {/* Imagen del alumno */}
-<Box sx={{ mt: 1, display: "flex", justifyContent: "flex-start", alignItems: "center", ml: 2 }}>
-  <Box
-    sx={{
-      border: "1px solid #ccc",
-      borderRadius: 2,
-      width: 130,
-      height: 160,
-      overflow: "hidden",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      mr: 3,
-      backgroundColor: "#f9f9f9",
-    }}
-  >
-    {s?.CueCod ? (
-      <img
-     // src={`http://unicahdev.registro.cp.unicah.edu/data/fotos/${s.CueReg}.jpg`}
-        src={`https://registro.cp.unicah.net/data/fotos/${s.CueReg}.jpg`}
-        alt="Foto del alumno"
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-        }}
-        onError={(e) => {
-          e.target.src = defaultUser;
-        }}
-      />
-    ) : (
-      <Typography variant="body2" color="text.secondary">
-        Sin foto
-      </Typography>
-    )}
-  </Box>
- 
-</Box>
+            {/* Imagen del alumno */}
+            <Box
+              sx={{
+                mt: 1,
+                display: "flex",
+                justifyContent: "flex-start",
+                alignItems: "center",
+                ml: 2,
+              }}
+            >
+              <Box
+                sx={{
+                  border: "1px solid #ccc",
+                  borderRadius: 2,
+                  width: 130,
+                  height: 160,
+                  overflow: "hidden",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mr: 3,
+                  backgroundColor: "#f9f9f9",
+                }}
+              >
+                {s?.CueCod ? (
+                  <img
+                    // src={`http://unicahdev.registro.cp.unicah.edu/data/fotos/${s.CueReg}.jpg`}
+                    src={`https://registro.cp.unicah.net/data/fotos/${s.CueReg}.jpg`}
+                    alt="Foto del alumno"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                    onError={(e) => {
+                      e.target.src = defaultUser;
+                    }}
+                  />
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    Sin foto
+                  </Typography>
+                )}
+              </Box>
+            </Box>
             <Box sx={{ width: "75%" }}>
               <Typography fontWeight={700} sx={{ mb: 1 }}>
                 Documentos adjuntos:
@@ -398,16 +555,16 @@ export default function DetalleSolicitudServicioAcademico({
                   {documentos.map((doc, idx) => {
                     let rutaCompleta = "";
 
-                 // 🟢 Documentos de REGISTRO (la ruta ya funciona bien)
-                 if (doc.DB === "REGISTRO" || !doc.DB) {
-                   rutaCompleta = `https://registro.cp.unicah.net${doc.DocPath}`;
-                 }
+                    // 🟢 Documentos de REGISTRO (la ruta ya funciona bien)
+                    if (doc.DB === "REGISTRO" || !doc.DB) {
+                      rutaCompleta = `https://registro.cp.unicah.net${doc.DocPath}`;
+                    }
 
-                 // 🔵 Documentos de ADMISIONES (DocPath = carpeta, DocNom = archivo)
-                else if (doc.DB === "ADMISIONES") {
-                    rutaCompleta = `https://admisiones.cp.unicah.net/api/cuentas/obtener_documentos.php?CueCod=${s.CueCod}&DocTip=${doc.DocTip}`;
-                    rutaCompleta = encodeURI(rutaCompleta); // manejar espacios/acentos
-                }
+                    // 🔵 Documentos de ADMISIONES (DocPath = carpeta, DocNom = archivo)
+                    else if (doc.DB === "ADMISIONES") {
+                      rutaCompleta = `https://admisiones.cp.unicah.net/api/cuentas/obtener_documentos.php?CueCod=${s.CueCod}&DocTip=${doc.DocTip}`;
+                      rutaCompleta = encodeURI(rutaCompleta); // manejar espacios/acentos
+                    }
 
                     return (
                       <Box
@@ -440,7 +597,13 @@ export default function DetalleSolicitudServicioAcademico({
                         <IconButton
                           size="small"
                           color="primary"
-                          onClick={() => window.open(rutaCompleta, "_blank", "noopener,noreferrer")}
+                          onClick={() =>
+                            window.open(
+                              rutaCompleta,
+                              "_blank",
+                              "noopener,noreferrer"
+                            )
+                          }
                           sx={{
                             ml: 1,
                             bgcolor: "#f5f5f5",
@@ -457,45 +620,51 @@ export default function DetalleSolicitudServicioAcademico({
               )}
             </Box>
           </Box>
-          
-          {/* Comentario de Becas */}
-{s?.observacionBeca && s.observacionBeca.trim() !== "" && (
-  <Box
-    sx={{
-      mt: 1,
-      mb: -1,
-      ml: 2,
-      p: 1,
-      px: 2,
-      borderLeft: "4px solid #FB8C00",
-      backgroundColor: "rgba(255, 152, 0, 0.08)",
-      borderRadius: "4px",
-      width: "fit-content"
-    }}
-  >
-    <Typography
-      variant="body2"
-      sx={{ fontWeight: 600, color: "#E65100", mb: 0.3 }}
-    >
-      Observación de becas:
-    </Typography>
 
-    <Typography
-      variant="body2"
-      sx={{ color: "#4E342E", whiteSpace: "pre-line" }}
-    >
-      {s.observacionBeca}
-    </Typography>
-  </Box>
-)}
+          {/* Comentario de Becas */}
+          {s?.observacionBeca && s.observacionBeca.trim() !== "" && (
+            <Box
+              sx={{
+                mt: 1,
+                mb: -1,
+                ml: 2,
+                p: 1,
+                px: 2,
+                borderLeft: "4px solid #FB8C00",
+                backgroundColor: "rgba(255, 152, 0, 0.08)",
+                borderRadius: "4px",
+                width: "fit-content",
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: "#E65100", mb: 0.3 }}
+              >
+                Observación de becas:
+              </Typography>
+
+              <Typography
+                variant="body2"
+                sx={{ color: "#4E342E", whiteSpace: "pre-line" }}
+              >
+                {s.observacionBeca}
+              </Typography>
+            </Box>
+          )}
 
           {/* ✅ Mostrar documento final solo si el estado es “En proceso de entrega” */}
-          {String(etiquetaEstado || "").trim().toUpperCase() === "EN PROCESO DE ENTREGA" && (
+          {String(etiquetaEstado || "")
+            .trim()
+            .toUpperCase() === "EN PROCESO DE ENTREGA" && (
             <VisualizarDocumentoFinalServicio docCod={s?.DocCod} />
           )}
 
           {/* Bloque “Servicio Académico entregado” */}
-          {["FIN", "ENTREGADO"].includes(String(etiquetaEstado || "").trim().toUpperCase()) && (
+          {["FIN", "ENTREGADO"].includes(
+            String(etiquetaEstado || "")
+              .trim()
+              .toUpperCase()
+          ) && (
             <Box
               sx={{
                 mt: 3,
@@ -548,7 +717,9 @@ export default function DetalleSolicitudServicioAcademico({
                       textAlign: "left",
                     }}
                   >
-                    <strong style={{ color: "#2e7d32" }}>Comentario de entrega:</strong>{" "}
+                    <strong style={{ color: "#2e7d32" }}>
+                      Comentario de entrega:
+                    </strong>{" "}
                     {docFinal.ComentarioServicioEntregado}
                   </Typography>
                 ) : (
@@ -575,13 +746,23 @@ export default function DetalleSolicitudServicioAcademico({
                     startIcon={<VisibilityIcon />}
                     onClick={() => {
                       if (docFinal?.DocPath) {
-                        window.open(`https://registro.cp.unicah.net${docFinal.DocPath}`, "_blank", "noopener,noreferrer");
+                        window.open(
+                          `https://registro.cp.unicah.net${docFinal.DocPath}`,
+                          "_blank",
+                          "noopener,noreferrer"
+                        );
                       } else {
                         Swal.fire({
                           icon: "warning",
                           title: "Documento no disponible",
                           text: "No se encontró el archivo final para esta solicitud.",
                           confirmButtonText: "Entendido",
+                          didOpen: () => {
+                            const swalContainer =
+                              document.querySelector(".swal2-container");
+                            if (swalContainer)
+                              swalContainer.style.zIndex = "20000";
+                          },
                         });
                       }
                     }}
@@ -628,7 +809,8 @@ export default function DetalleSolicitudServicioAcademico({
                 }}
               >
                 <Typography sx={{ mb: 2, textAlign: "center" }}>
-                  Este archivo se abrirá en una nueva pestaña para una mejor visualización.
+                  Este archivo se abrirá en una nueva pestaña para una mejor
+                  visualización.
                 </Typography>
 
                 <Button
@@ -647,7 +829,7 @@ export default function DetalleSolicitudServicioAcademico({
           )}
 
           {/* Botón global si todos los chips están en OK */}
-         {/*
+          {/*
           {todosOk && (
             <Box sx={{ textAlign: "center", mt: 2 }}>
               <Button
@@ -671,113 +853,145 @@ export default function DetalleSolicitudServicioAcademico({
           <Divider />
 
           <Typography fontWeight={700}>Observaciones:</Typography>
-          <Typography sx={{ whiteSpace: "pre-line" }}>{s?.DocSolObs || "-"}</Typography>
+          <Typography sx={{ whiteSpace: "pre-line" }}>
+            {s?.DocSolObs || "-"}
+          </Typography>
         </Stack>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2, pt: 1 }}>
         <Box sx={{ flex: 1 }} />
-        <Button variant="outlined" startIcon={<TimelineIcon />} onClick={() => setOpenHist(true)}>Bitácora de acciones</Button>
-       {/*  
+        <Button
+          variant="outlined"
+          startIcon={<TimelineIcon />}
+          onClick={() => setOpenHist(true)}
+        >
+          Bitácora de acciones
+        </Button>
+        {/*  
         {String(s?.EstNom || "").toLowerCase() === "pendiente de pago" && (
           <Button variant="contained" color="primary" onClick={() => setOpenComprobante(true)}>Pagar</Button>
         )}
       */}
         {/* ✅ Nuevo botón de “Marcar como OK (Registro)” */}
         {mostrarBotonRegistro &&
-  String(s?.EstNom || "").toLowerCase() !== "denegado" && (
-    <BotonActualizarRegistro solicitud={s} onUpdate={onUpdate} />
-  )}
+          String(s?.EstNom || "").toLowerCase() !== "denegado" && (
+            <BotonActualizarRegistro solicitud={s} onUpdate={onUpdate} />
+          )}
         {puedeAutorizar && (
-          <Button variant="outlined" color="success" onClick={() => setOpenAutorizar(true)}>Proceder pago</Button>
+          <Button
+            variant="outlined"
+            color="success"
+            onClick={() => setOpenAutorizar(true)}
+          >
+            Proceder pago
+          </Button>
         )}
         {puedeDenegar && (
-          <Button variant="outlined" color="error" onClick={() => setOpenDenegar(true)}>Denegar</Button>
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => setOpenDenegar(true)}
+          >
+            Denegar
+          </Button>
         )}
         {/* ✅ Mostrar botón solo si el estado actual es "En proceso" (PGD) */}
         {(() => {
-  const estadoActual = String(estadoDocLocal || etiquetaEstado || "").trim().toUpperCase();
-  const esEnProceso = ["PGD", "EN PROCESO"].includes(estadoActual);
+          const estadoActual = String(estadoDocLocal || etiquetaEstado || "")
+            .trim()
+            .toUpperCase();
+          const esEnProceso = ["PGD", "EN PROCESO"].includes(estadoActual);
 
-  // ✅ carnet NO adjunta documento final nunca
-  if (esCarnet) return null;
+          // ✅ carnet NO adjunta documento final nunca
+          if (esCarnet) return null;
 
-  const esConstanciaEspecial =
-    String(s?.DocNom || "").trim().toLowerCase() === "constancias nacionales" &&
-    String(s?.DocLeng || "").trim().toUpperCase() === "ESP";
+          const esConstanciaEspecial =
+            String(s?.DocNom || "")
+              .trim()
+              .toLowerCase() === "constancias nacionales" &&
+            String(s?.DocLeng || "")
+              .trim()
+              .toUpperCase() === "ESP";
 
-  const puedeAdjuntar =
-    tienePermisoAdjuntar || (esConstanciaEspecial && esEnProceso);
+          const puedeAdjuntar =
+            tienePermisoAdjuntar || (esConstanciaEspecial && esEnProceso);
 
-  return (
-    esEnProceso &&
-    puedeAdjuntar && 
-    !esCarnet && (
-      <Button
-        variant="contained"
-        color="primary"
-        sx={{ fontWeight: 700 }}
-        onClick={() => setOpenAdjuntar(true)}
-      >
-        Adjuntar documento final
-      </Button>
-    )
-  );
-})()}
+          return (
+            esEnProceso &&
+            puedeAdjuntar &&
+            !esCarnet && (
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ fontWeight: 700 }}
+                onClick={() => setOpenAdjuntar(true)}
+              >
+                Adjuntar documento final
+              </Button>
+            )
+          );
+        })()}
         {/* ✅ Mostrar botón solo si el estado actual es "En proceso de entrega" (CMP) */}
         {(() => {
-  const estadoActual = String(estadoDocLocal || etiquetaEstado || "")
-    .trim()
-    .toUpperCase();
+          const estadoActual = String(estadoDocLocal || etiquetaEstado || "")
+            .trim()
+            .toUpperCase();
 
-  const esCMP = ["CMP", "EN PROCESO DE ENTREGA"].includes(estadoActual);
-  const esPGD = ["PGD", "EN PROCESO"].includes(estadoActual);
+          const esCMP = ["CMP", "EN PROCESO DE ENTREGA"].includes(estadoActual);
+          const esPGD = ["PGD", "EN PROCESO"].includes(estadoActual);
 
-  // ✅ Normal: solo CMP
-  // ✅ Carné: permitir también en PGD
-  const habilitarNotificar = esCMP || (esCarnet && esPGD);
+          // ✅ Normal: solo CMP
+          // ✅ Carné: permitir también en PGD
+          const habilitarNotificar = esCMP || (esCarnet && esPGD);
 
-  if (!habilitarNotificar) return null;
+          if (!habilitarNotificar) return null;
 
-  return (
-    <>
-      {!notificado && (
-        <BotonNotificarAlumno
-          solicitud={solicitud}
-          docCod={s?.DocCod}
-          usrUsr={userData?.UsrUsr || userData?.username || ""}
-          onNotificadoChange={setNotificado}
-        />
-      )}
+          return (
+            <>
+              {!notificado && (
+                <BotonNotificarAlumno
+                  solicitud={solicitud}
+                  docCod={s?.DocCod}
+                  usrUsr={userData?.UsrUsr || userData?.username || ""}
+                  onNotificadoChange={setNotificado}
+                />
+              )}
 
-      {notificado && (
-        <Button
-          variant="contained"
-          color="success"
-          sx={{ fontWeight: 700 }}
-          onClick={() => setOpenEntrega(true)}
-        >
-          Marcar como entregado
-        </Button>
-      )}
-    </>
-  );
-})()}
+              {notificado && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  sx={{ fontWeight: 700 }}
+                  onClick={() => setOpenEntrega(true)}
+                >
+                  Marcar como entregado
+                </Button>
+              )}
+            </>
+          );
+        })()}
         <Button onClick={safeClose}>Cerrar</Button>
-
       </DialogActions>
 
       {/* Modales secundarios */}
       {openDenegar && (
         <ModalDenegarSolicitud
           open={openDenegar}
-          onClose={() => { document.activeElement?.blur(); setOpenDenegar(false); }}
+          onClose={() => {
+            document.activeElement?.blur();
+            setOpenDenegar(false);
+          }}
           onConfirm={async (observacion) => {
             document.activeElement?.blur();
             setOpenDenegar(false);
             onClose?.();
             setTimeout(() => onDenegar?.(s, observacion), 0);
-            enviarCorreo("denegado_solicitud_alumno", [solicitud.CueMail], observacion)
+            enviarCorreo(
+              "denegado_solicitud_alumno",
+              [solicitud.CueMail],
+              observacion
+            );
           }}
         />
       )}
@@ -786,15 +1000,22 @@ export default function DetalleSolicitudServicioAcademico({
         <ModalAutorizarPago
           open={openAutorizar}
           solicitud={s}
-          onClose={() => { document.activeElement?.blur(); setOpenAutorizar(false); }}
-          onSubmit={async () => { setOpenAutorizar(false); onClose?.(); setTimeout(async () => await onUpdate?.(), 0); }}
+          onClose={() => {
+            document.activeElement?.blur();
+            setOpenAutorizar(false);
+          }}
+          onSubmit={async () => {
+            setOpenAutorizar(false);
+            onClose?.();
+            setTimeout(async () => await onUpdate?.(), 0);
+          }}
         />
       )}
-     {/*
+      {/*
       {openComprobante && (
         <ModalAdjuntarComprobante open={openComprobante} solicitud={s} onClose={() => setOpenComprobante(false)} />
       )}
-    */} 
+    */}
       {/* ✅ Modal para adjuntar documento final */}
       {openAdjuntar && (
         <ModalAdjuntarDocumentoServicioAcademico
@@ -811,20 +1032,44 @@ export default function DetalleSolicitudServicioAcademico({
         />
       )}
       {/* Historial */}
-      <Dialog open={openHist} onClose={() => setTimeout(() => setOpenHist(false), 0)} fullWidth maxWidth="md" disableRestoreFocus disableEnforceFocus>
-        <DialogTitle sx={{ textAlign: "center", fontWeight: 700, fontSize: "1.25rem", borderBottom: "1px solid", borderColor: theme.palette.divider }}>
+      <Dialog
+        open={openHist}
+        onClose={() => setTimeout(() => setOpenHist(false), 0)}
+        fullWidth
+        maxWidth="md"
+        disableRestoreFocus
+        disableEnforceFocus
+      >
+        <DialogTitle
+          sx={{
+            textAlign: "center",
+            fontWeight: 700,
+            fontSize: "1.25rem",
+            borderBottom: "1px solid",
+            borderColor: theme.palette.divider,
+          }}
+        >
           Historial de acciones
-          <IconButton onClick={() => setOpenHist(false)} sx={{ position: "absolute", right: 8, top: 8 }}>
+          <IconButton
+            onClick={() => setOpenHist(false)}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
           {s?.DocCod ? (
-            <Suspense fallback={<DialogContentText>Cargando historial...</DialogContentText>}>
+            <Suspense
+              fallback={
+                <DialogContentText>Cargando historial...</DialogContentText>
+              }
+            >
               <HistorialTimeline docCod={s.DocCod} height={420} />
             </Suspense>
           ) : (
-            <DialogContentText>No se encontró el DocCod de esta solicitud.</DialogContentText>
+            <DialogContentText>
+              No se encontró el DocCod de esta solicitud.
+            </DialogContentText>
           )}
         </DialogContent>
       </Dialog>
@@ -851,7 +1096,8 @@ export default function DetalleSolicitudServicioAcademico({
               timer: 1800,
               showConfirmButton: false,
               didOpen: () => {
-                const swalContainer = document.querySelector(".swal2-container");
+                const swalContainer =
+                  document.querySelector(".swal2-container");
                 if (swalContainer) swalContainer.style.zIndex = 20000;
               },
             });
