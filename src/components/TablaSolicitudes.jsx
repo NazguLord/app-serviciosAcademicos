@@ -8,6 +8,8 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import HorizontalRuleRoundedIcon from "@mui/icons-material/HorizontalRuleRounded";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import BadgeIcon from "@mui/icons-material/Badge";
+import DoNotDisturbAltOutlinedIcon from "@mui/icons-material/DoNotDisturbAltOutlined";
 
 const TablaSolicitudes = ({
   solicitudes,
@@ -51,7 +53,7 @@ const TablaSolicitudes = ({
 
 const renderNoAplica = () => (
   <Tooltip title="No aplica (Reposición de carné)">
-    <InfoOutlinedIcon
+    <DoNotDisturbAltOutlinedIcon
       sx={{ fontSize: 20, color: theme.palette.text.secondary }}
     />
   </Tooltip>
@@ -116,7 +118,54 @@ const renderNoAplica = () => (
       headerAlign: "center",
       renderCell: (p) => renderEllipsis(p.value),
     },
-    { field: "DocNom", headerName: "Documento", width: 220, minWidth: 100, headerAlign: "center" },
+    {
+  field: "DocNom",
+  headerName: "Documento",
+  width: 240,
+  minWidth: 140,
+  headerAlign: "center",
+  renderCell: (p) => {
+    const esCarnet = esCarnetRow(p.row);
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.8,
+          width: "100%",
+          justifyContent: "center", // 👈 para que quede centrado como tu tabla
+          overflow: "hidden",
+        }}
+        title={p.value}
+      >
+        {esCarnet && (
+          <Tooltip title="Reposición de carné">
+            <BadgeIcon
+              sx={{
+                fontSize: 18,
+                color: theme.palette.info.main,
+                flexShrink: 0,
+              }}
+            />
+          </Tooltip>
+        )}
+
+        <span
+          style={{
+            display: "inline-block",
+            maxWidth: "100%",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {p.value ?? "-"}
+        </span>
+      </Box>
+    );
+  },
+},
 
     {
   field: "BecNom",

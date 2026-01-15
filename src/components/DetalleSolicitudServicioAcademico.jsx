@@ -40,6 +40,7 @@ import VisualizarDocumentoFinalServicio from "../components/VisualizarDocumentoF
 import ModalEntregaDocumentoServicioFinal from "../components/ModalEntregaDocumentoServicioFinal";
 import BotonNotificarAlumno from "../components/BotonNotificarAlumno";
 import BotonActualizarRegistro from "../components/BotonActualizarRegistro";
+import DoNotDisturbAltOutlinedIcon from "@mui/icons-material/DoNotDisturbAltOutlined";
 import axios from "axios";
 
 /* ---------- helpers ---------- */
@@ -112,7 +113,7 @@ const ChipNoAplica = React.memo(function ChipNoAplica({ label = "No aplica" }) {
     <Chip
       size="small"
       variant="outlined"
-      icon={<InfoOutlinedIcon />}
+      icon={<DoNotDisturbAltOutlinedIcon />}
       label={label}
       sx={{
         color,
