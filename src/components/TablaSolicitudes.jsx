@@ -59,6 +59,22 @@ const renderNoAplica = () => (
   </Tooltip>
 );
 
+const esEntregadoRow = (row) => {
+  const estado = String(row?.EstNom || row?.DocEstRaw || "")
+    .trim()
+    .toUpperCase();
+
+  return estado === "ENTREGADO" || estado === "FIN";
+};
+
+const renderFinalizado = () => (
+  <Tooltip title="Solicitud finalizada">
+    <CheckCircleRoundedIcon
+      sx={{ fontSize: 20, color: theme.palette.success.main }}
+    />
+  </Tooltip>
+);
+
  const renderCheck = (value) => {
   const v = String(value ?? "").trim().toUpperCase();
 
@@ -174,7 +190,12 @@ const renderNoAplica = () => (
   minWidth: 58,
   headerAlign: "center",
   align: "center",
-  renderCell: (p) => (esCarnetRow(p.row) ? renderNoAplica() : renderCheck(p.value)),
+  renderCell: (p) =>
+    esCarnetRow(p.row)
+      ? renderNoAplica()
+      : esEntregadoRow(p.row)
+      ? renderFinalizado()
+      : renderCheck(p.value),
 },
     {
   field: "EstCont",
@@ -183,7 +204,12 @@ const renderNoAplica = () => (
   minWidth: 58,
   headerAlign: "center",
   align: "center",
-  renderCell: (p) => (esCarnetRow(p.row) ? renderNoAplica() : renderCheck(p.value)),
+  renderCell: (p) =>
+    esCarnetRow(p.row)
+      ? renderNoAplica()
+      : esEntregadoRow(p.row)
+      ? renderFinalizado()
+      : renderCheck(p.value),
 },
 
     // 👇 CAMBIADO: la celda usa el mapa si existe, si no, cae a CorNom (comportamiento actual)
@@ -197,6 +223,7 @@ const renderNoAplica = () => (
   sortable: false,
   renderCell: (p) => {
     if (esCarnetRow(p.row)) return renderNoAplica();
+    if (esEntregadoRow(p.row)) return renderFinalizado();
     const estado = bibliotecaMap?.[p.row.CueCod] ?? p.row.CorNom;
     return renderCheck(estado);
   },
@@ -209,7 +236,12 @@ const renderNoAplica = () => (
   minWidth: 58,
   headerAlign: "center",
   align: "center",
-  renderCell: (p) => (esCarnetRow(p.row) ? renderNoAplica() : renderCheck(p.value)),
+  renderCell: (p) =>
+    esCarnetRow(p.row)
+      ? renderNoAplica()
+      : esEntregadoRow(p.row)
+      ? renderFinalizado()
+      : renderCheck(p.value),
 },
 
     {

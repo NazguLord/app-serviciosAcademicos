@@ -126,6 +126,27 @@ const ChipNoAplica = React.memo(function ChipNoAplica({ label = "No aplica" }) {
   );
 });
 
+const ChipFinalizado = React.memo(function ChipFinalizado() {
+  const theme = useTheme();
+  const color = theme.palette.success.main;
+
+  return (
+    <Chip
+      size="small"
+      variant="outlined"
+      icon={<CheckCircleRoundedIcon />}
+      label="Finalizado"
+      sx={{
+        color,
+        borderColor: color,
+        fontWeight: 700,
+        height: 28,
+        bgcolor: alpha(color, 0.08),
+      }}
+    />
+  );
+});
+
 /* ---------- componente principal ---------- */
 export default function DetalleSolicitudServicioAcademico({
   open,
@@ -297,6 +318,11 @@ export default function DetalleSolicitudServicioAcademico({
   const estNomLower = String(s?.EstNom || "")
     .trim()
     .toLowerCase();
+  const esEntregado =
+    estNomLower === "entregado" ||
+    String(s?.DocEstRaw || "")
+      .trim()
+      .toUpperCase() === "FIN";
   const esPendiente = estNomLower === "pendiente";
   const puedeDenegar = estNomLower.startsWith("pendient");
   const puedeAutorizar = esPendiente && (esCarnet || todosOk);
@@ -460,7 +486,13 @@ export default function DetalleSolicitudServicioAcademico({
               <Typography>
                 <b>Becas</b>
               </Typography>
-              {esCarnet ? <ChipNoAplica /> : <ChipSemaforo valor={s?.BecNom} />}
+              {esCarnet ? (
+                <ChipNoAplica />
+              ) : esEntregado ? (
+                <ChipFinalizado />
+              ) : (
+                <ChipSemaforo valor={s?.BecNom} />
+              )}
             </Stack>
 
             <Stack direction="row" spacing={1}>
@@ -469,6 +501,8 @@ export default function DetalleSolicitudServicioAcademico({
               </Typography>
               {esCarnet ? (
                 <ChipNoAplica />
+              ) : esEntregado ? (
+                <ChipFinalizado />
               ) : (
                 <ChipSemaforo valor={s?.EstCont} />
               )}
@@ -480,6 +514,8 @@ export default function DetalleSolicitudServicioAcademico({
               </Typography>
               {esCarnet ? (
                 <ChipNoAplica />
+              ) : esEntregado ? (
+                <ChipFinalizado />
               ) : (
                 <ChipSemaforo valor={estadoBiblioteca} />
               )}
@@ -489,7 +525,13 @@ export default function DetalleSolicitudServicioAcademico({
               <Typography>
                 <b>Registro</b>
               </Typography>
-              {esCarnet ? <ChipNoAplica /> : <ChipSemaforo valor={s?.EstReg} />}
+              {esCarnet ? (
+                <ChipNoAplica />
+              ) : esEntregado ? (
+                <ChipFinalizado />
+              ) : (
+                <ChipSemaforo valor={s?.EstReg} />
+              )}
             </Stack>
           </Stack>
 
