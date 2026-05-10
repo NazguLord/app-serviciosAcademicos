@@ -963,6 +963,7 @@ export default function DetalleSolicitudServicioAcademico({
           return (
             esEnProceso &&
             puedeAdjuntar &&
+            todosOk &&
             !esCarnet && (
               <Button
                 variant="contained"
