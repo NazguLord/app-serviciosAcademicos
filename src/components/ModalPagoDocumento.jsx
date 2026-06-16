@@ -66,13 +66,13 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
     onClose();
   };
 
- const handleAutorizar = async () => {
-  try {
-    setLoading(true);
-    document.activeElement?.blur();
-    handleClose();
+const handleAutorizar = async () => {
+  setLoading(true);
+  document.activeElement?.blur();
+  handleClose();
 
-    setTimeout(async () => {
+  setTimeout(async () => {
+    try {
       Swal.fire({
         title: "Autorizando pago...",
         text: "Por favor espere",
@@ -89,7 +89,7 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
       };
 
       const resp = await autorizarSolicitud(payload);
-      let docCodParte = solicitud.DocCod.split("-").pop();
+      const docCodParte = solicitud.DocCod.split("-").pop();
 
       if (resp?.status === "OK") {
         const sapResp = await crearFacturaSapServiciosAcademicos(docCodParte);
@@ -117,17 +117,21 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
           text: resp?.payload?.message || "No se pudo autorizar el pago",
         });
       }
-    }, 0);
-  } catch (err) {
-    console.error("Error al autorizar:", err);
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "Ocurrió un error al autorizar el pago",
-    });
-  } finally {
-    setLoading(false);
-  }
+    } catch (err) {
+      console.error("Error al autorizar o crear factura SAP:", err);
+
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Ocurrió un error al autorizar el pago",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, 0);
 };
 
   return (
