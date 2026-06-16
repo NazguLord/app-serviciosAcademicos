@@ -1,6 +1,7 @@
 // src/api/solicitudesApi.js
 import axios from "axios";
 const API_BASE = import.meta.env.VITE_API_BASE;
+const API_BASE_SAP = import.meta.env.VITE_SAP_API_BASE;
 
 export const obtenerSolicitudes = async (campus, estado) => {
   try {
@@ -183,3 +184,11 @@ export const obtenerDocumentosCampusDeEntrega = async (campus) => {
   }
 };
 
+export async function crearFacturaSapServiciosAcademicos(docCod) {
+  
+  const { data } = await axios.post(
+    `${API_BASE_SAP}MandarFacturasSapServiciosAcademicos/${docCod}`
+  );
+
+  return data;
+}

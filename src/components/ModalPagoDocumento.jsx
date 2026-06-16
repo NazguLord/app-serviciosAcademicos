@@ -10,7 +10,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import Swal from "sweetalert2";
-import { autorizarSolicitud } from "../api/solicitudesApi";
+import { autorizarSolicitud, crearFacturaSapServiciosAcademicos } from "../api/solicitudesApi";
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE;
@@ -66,60 +66,69 @@ export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud 
     onClose();
   };
 
-  const handleAutorizar = async () => {
-    try {
-      setLoading(true);
-      document.activeElement?.blur();
-      handleClose();
+ const handleAutorizar = async () => {
+  try {
+    setLoading(true);
+    document.activeElement?.blur();
+    handleClose();
 
-      setTimeout(async () => {
+    setTimeout(async () => {
+      Swal.fire({
+        title: "Autorizando pago...",
+        text: "Por favor espere",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      const payload = {
+        DocCod: solicitud.DocCod,
+        estadoreg: solicitud.estadoreg ?? "",
+        estadocont: solicitud.estadocont ?? "",
+        estadocond: solicitud.estadocond ?? "",
+      };
+
+      const resp = await autorizarSolicitud(payload);
+      let docCodParte = solicitud.DocCod.split("-").pop();
+
+      if (resp?.status === "OK") {
+        const sapResp = await crearFacturaSapServiciosAcademicos(docCodParte);
+
+        if (!sapResp?.ok) {
+          throw new Error(
+            sapResp?.message || "No se pudo crear la factura abierta en SAP"
+          );
+        }
+
         Swal.fire({
-          title: "Autorizando pago...",
-          text: "Por favor espere",
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          didOpen: () => Swal.showLoading(),
+          icon: "success",
+          title: "Pago autorizado",
+          text: "El documento fue autorizado correctamente. El interesado podrá proceder con el pago.",
+          timer: 2500,
+          showConfirmButton: false,
         });
 
-        const payload = {
-          DocCod: solicitud.DocCod,
-          estadoreg: solicitud.estadoreg ?? "",
-          estadocont: solicitud.estadocont ?? "",
-          estadocond: solicitud.estadocond ?? "",
-        };
-
-        const resp = await autorizarSolicitud(payload);
-        let docCodParte = solicitud.DocCod.split('-').pop();
-
-        if (resp?.status === "OK") {
-          Swal.fire({
-            icon: "success",
-            title: "Pago autorizado",
-            text: "El documento fue autorizado correctamente. El interesado podrá proceder con el pago.",
-            timer: 2500,
-            showConfirmButton: false,
-          });
-          onSubmit?.();
-          enviarCorreo("autorizado_pago_alumno", [solicitud.CueMail], docCodParte)
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: resp?.payload?.message || "No se pudo autorizar el pago",
-          });
-        }
-      }, 0);
-    } catch (err) {
-      console.error("Error al autorizar:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Ocurrió un error al autorizar el pago",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+        onSubmit?.();
+        enviarCorreo("autorizado_pago_alumno", [solicitud.CueMail], docCodParte);
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: resp?.payload?.message || "No se pudo autorizar el pago",
+        });
+      }
+    }, 0);
+  } catch (err) {
+    console.error("Error al autorizar:", err);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Ocurrió un error al autorizar el pago",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Dialog
