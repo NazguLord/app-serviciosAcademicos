@@ -919,7 +919,13 @@ export default function DetalleSolicitudServicioAcademico({
         {/* ✅ Nuevo botón de “Marcar como OK (Registro)” */}
         {mostrarBotonRegistro &&
           String(s?.EstNom || "").toLowerCase() !== "denegado" && (
-            <BotonActualizarRegistro solicitud={s} onUpdate={onUpdate} />
+            <BotonActualizarRegistro
+              solicitud={s}
+              onUpdate={() => {
+                onClose?.();
+                setTimeout(async () => await onUpdate?.(), 0);
+              }}
+            />
           )}
         {puedeAutorizar && (
           <Button

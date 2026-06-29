@@ -21,8 +21,18 @@ import "dayjs/locale/es";
 dayjs.locale("es");
 import { obtenerHistorialAcciones } from "../api/solicitudesApi";
 
-function iconoColor(accion = "") {
-  const a = (accion || "").toLowerCase();
+function iconoColor(accion = "", usuario = "") {
+  const normalizar = (valor = "") =>
+    String(valor)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const a = normalizar(accion);
+  const u = normalizar(usuario);
+  if (a.includes("tesoreria") || u.includes("tesoreria")) {
+    return { icon: <PaidIcon />, color: "success" };
+  }
   if (a.includes("pagado")) {return { icon: <PaidIcon />, color: "success", }}
   if (a.includes("entregado el documento al alumno")) {return { icon: <TaskAltIcon />, color: "success" }}
   if (a.includes("creo") || a.includes("crea")) return { icon: <PersonAddIcon  />, color: "info" };
@@ -92,7 +102,7 @@ export default function HistorialTimeline({ docCod, height = 420 }) {
     return (
       <Timeline position="alternate">
         {rows.map((it, idx) => {
-          const { icon, color } = iconoColor(it.accion);
+          const { icon, color } = iconoColor(it.accion, it.usuario);
           const ultimo = idx === rows.length - 1;
           return (
             <TimelineItem key={idx}>

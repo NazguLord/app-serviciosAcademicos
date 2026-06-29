@@ -18,6 +18,11 @@ const BASE_URL = import.meta.env.VITE_API_BASE;
 export default function ModalPagoDocumento({ open, onClose, onSubmit, solicitud }) {
   const [loading, setLoading] = useState(false);
 
+  const traerSwalAlFrente = () => {
+    const swalContainer = document.querySelector(".swal2-container");
+    if (swalContainer) swalContainer.style.zIndex = 20000;
+  };
+
   useEffect(() => {
     return () => {
       if (document.activeElement instanceof HTMLElement) {
@@ -78,7 +83,10 @@ const handleAutorizar = async () => {
         text: "Por favor espere",
         allowOutsideClick: false,
         allowEscapeKey: false,
-        didOpen: () => Swal.showLoading(),
+        didOpen: () => {
+          traerSwalAlFrente();
+          Swal.showLoading();
+        },
       });
 
       const payload = {
@@ -92,6 +100,13 @@ const handleAutorizar = async () => {
       const docCodParte = solicitud.DocCod.split("-").pop();
 
       if (resp?.status === "OK") {
+        Swal.update({
+          title: "Enviando solicitud a SAP...",
+          text: "Este proceso puede tardar unos segundos. Por favor espere.",
+        });
+        traerSwalAlFrente();
+        Swal.showLoading();
+
         const sapResp = await crearFacturaSapServiciosAcademicos(docCodParte);
 
         if (!sapResp?.ok) {
@@ -106,6 +121,7 @@ const handleAutorizar = async () => {
           text: "El documento fue autorizado correctamente. El interesado podrá proceder con el pago.",
           timer: 2500,
           showConfirmButton: false,
+          didOpen: traerSwalAlFrente,
         });
 
         onSubmit?.();
@@ -115,6 +131,7 @@ const handleAutorizar = async () => {
           icon: "error",
           title: "Error",
           text: resp?.payload?.message || "No se pudo autorizar el pago",
+          didOpen: traerSwalAlFrente,
         });
       }
     } catch (err) {
@@ -127,6 +144,7 @@ const handleAutorizar = async () => {
           err?.response?.data?.message ||
           err?.message ||
           "Ocurrió un error al autorizar el pago",
+        didOpen: traerSwalAlFrente,
       });
     } finally {
       setLoading(false);
