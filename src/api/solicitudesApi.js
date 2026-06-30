@@ -3,7 +3,7 @@ import axios from "axios";
 const API_BASE = import.meta.env.VITE_API_BASE;
 const API_BASE_SAP = import.meta.env.VITE_SAP_API_BASE;
 
-export const obtenerSolicitudes = async (campus, estado, paginationModel = { page: 0, pageSize: 10 }) => {
+export const obtenerSolicitudes = async (campus, estado, paginationModel = { page: 0, pageSize: 10 }, filtro = "") => {
   try {
     const response = await axios.get(`${API_BASE}asolicitud_documentos/buscar2.php`, {
       params: {
@@ -11,6 +11,7 @@ export const obtenerSolicitudes = async (campus, estado, paginationModel = { pag
         DocEst: estado,
         pagenum: paginationModel.page,
         pagesize: paginationModel.pageSize,
+        filtervalue0: filtro,
       }
     });
 

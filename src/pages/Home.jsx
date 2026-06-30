@@ -107,7 +107,7 @@ function Home() {
   data = documentos.slice(inicio, fin);
   total = documentos.length;
 } else {
-  const resultado = await obtenerSolicitudes(campusSeleccionado, estadoActual, paginationModel);
+  const resultado = await obtenerSolicitudes(campusSeleccionado, estadoActual, paginationModel, filtro);
   data = resultado.data;
   total = resultado.total;
 }
@@ -119,7 +119,7 @@ function Home() {
   } finally {
     setCargando(false);
   }
-}, [campusSeleccionado, estadoActual, paginationModel]);
+}, [campusSeleccionado, estadoActual, paginationModel, filtro]);
 
 
   // ✅ Cargar campus según permisos del usuario
@@ -166,7 +166,7 @@ useEffect(() => {
     setPaginationModel((actual) => ({ ...actual, page: 0 }));
     setBibliotecaMap({});
     setFilasVisibles([]);
-  }, [campusSeleccionado, estadoTab]);
+  }, [campusSeleccionado, estadoTab, filtro]);
 
  // ⭐ Nuevo cálculo: basado en filas realmente visibles en la tabla
 useEffect(() => {
@@ -408,7 +408,7 @@ useEffect(() => {
       ) : (
         <TablaSolicitudes
           solicitudes={filasMemo}
-          busqueda={busqueda}
+          busqueda={filtro}
           cargando={cargando}
           onVerDetalle={abrirDetalle}
           bibliotecaMap={bibliotecaMap}

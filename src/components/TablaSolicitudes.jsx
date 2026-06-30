@@ -297,13 +297,7 @@ const renderFinalizado = () => (
     },
   ];
 
-  const filteredRows = useMemo(
-    () =>
-      solicitudes.filter((row) =>
-        Object.values(row).some((value) => typeof value === "string" && value.toLowerCase().includes(busqueda))
-      ),
-    [solicitudes, busqueda]
-  );
+  const filteredRows = useMemo(() => solicitudes, [solicitudes]);
   
 React.useEffect(() => {
   if (onVisibleRowsChange) {
