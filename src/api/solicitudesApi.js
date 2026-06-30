@@ -3,19 +3,27 @@ import axios from "axios";
 const API_BASE = import.meta.env.VITE_API_BASE;
 const API_BASE_SAP = import.meta.env.VITE_SAP_API_BASE;
 
-export const obtenerSolicitudes = async (campus, estado) => {
+export const obtenerSolicitudes = async (campus, estado, paginationModel = { page: 0, pageSize: 10 }) => {
   try {
     const response = await axios.get(`${API_BASE}asolicitud_documentos/buscar2.php`, {
-      params: { CamCod: campus, DocEst: estado }
+      params: {
+        CamCod: campus,
+        DocEst: estado,
+        pagenum: paginationModel.page,
+        pagesize: paginationModel.pageSize,
+      }
     });
 
-    // Asegura que response.data.data sea un array
-    const solicitudes = response.data?.data;
-    return Array.isArray(solicitudes) ? solicitudes : [];
+    const solicitudes = Array.isArray(response.data?.data) ? response.data.data : [];
+
+    return {
+      data: solicitudes,
+      total: Number(response.data?.total ?? 0),
+    };
 
   } catch (error) {
     console.error("Error al obtener solicitudes:", error);
-    return [];
+    return { data: [], total: 0 };
   }
 };
 

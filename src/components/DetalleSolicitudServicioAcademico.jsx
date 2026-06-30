@@ -318,13 +318,14 @@ export default function DetalleSolicitudServicioAcademico({
   const estNomLower = String(s?.EstNom || "")
     .trim()
     .toLowerCase();
+  const docEstRaw = String(s?.DocEstRaw || "")
+    .trim()
+    .toUpperCase();
   const esEntregado =
     estNomLower === "entregado" ||
-    String(s?.DocEstRaw || "")
-      .trim()
-      .toUpperCase() === "FIN";
+    docEstRaw === "FIN";
   const esPendiente = estNomLower === "pendiente";
-  const puedeDenegar = estNomLower.startsWith("pendient");
+  const puedeDenegar = docEstRaw === "PDT" || esPendiente;
   const puedeAutorizar = esPendiente && (esCarnet || todosOk);
 
   const safeClose = () => {

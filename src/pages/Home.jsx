@@ -90,6 +90,7 @@ function Home() {
   const [tienePermisoGlobal, setTienePermisoGlobal] = useState(false);
   const estadoActual = estados[estadoTab].value;
   const [paginationModel, setPaginationModel] = useState({  page: 0,   pageSize: 10 });
+  const [rowCount, setRowCount] = useState(0);
 
   // ✅ función reutilizable para cargar solicitudes
  const cargarSolicitudes = useCallback(async () => {
@@ -97,20 +98,28 @@ function Home() {
   setCargando(true);
   try {
     let data = [];
+    let total = 0;
 
     if (estadoActual === "CampusDeEntrega") {
-  data = await obtenerDocumentosCampusDeEntrega(campusSeleccionado);
+  const documentos = await obtenerDocumentosCampusDeEntrega(campusSeleccionado);
+  const inicio = paginationModel.page * paginationModel.pageSize;
+  const fin = inicio + paginationModel.pageSize;
+  data = documentos.slice(inicio, fin);
+  total = documentos.length;
 } else {
-  data = await obtenerSolicitudes(campusSeleccionado, estadoActual);
+  const resultado = await obtenerSolicitudes(campusSeleccionado, estadoActual, paginationModel);
+  data = resultado.data;
+  total = resultado.total;
 }
 
     setSolicitudes(mapearSolicitudes(data));
+    setRowCount(total);
   } catch (err) {
     console.error("Error al cargar solicitudes:", err);
   } finally {
     setCargando(false);
   }
-}, [campusSeleccionado, estadoActual]);
+}, [campusSeleccionado, estadoActual, paginationModel]);
 
 
   // ✅ Cargar campus según permisos del usuario
@@ -151,7 +160,13 @@ useEffect(() => {
   // ✅ Recargar automáticamente al cambiar campus o pestaña
   useEffect(() => {
     if (campusSeleccionado) cargarSolicitudes();
-  }, [campusSeleccionado, estadoTab, cargarSolicitudes]);
+  }, [campusSeleccionado, estadoTab, paginationModel, cargarSolicitudes]);
+
+  useEffect(() => {
+    setPaginationModel((actual) => ({ ...actual, page: 0 }));
+    setBibliotecaMap({});
+    setFilasVisibles([]);
+  }, [campusSeleccionado, estadoTab]);
 
  // ⭐ Nuevo cálculo: basado en filas realmente visibles en la tabla
 useEffect(() => {
@@ -399,6 +414,7 @@ useEffect(() => {
           bibliotecaMap={bibliotecaMap}
           paginationModel={paginationModel}
           setPaginationModel={setPaginationModel}
+          rowCount={rowCount}
           onVisibleRowsChange={setFilasVisibles}
         />
       )}

@@ -20,6 +20,7 @@ const TablaSolicitudes = ({
   bibliotecaMap = {},
   paginationModel,          // ⭐ NUEVO
   setPaginationModel,       // ⭐ NUEVO
+  rowCount = 0,
   onVisibleRowsChange,
 }) => {
   const theme = useTheme();
@@ -320,6 +321,8 @@ React.useEffect(() => {
         density={isMdDown ? "compact" : "standard"}
          paginationModel={paginationModel}
          onPaginationModelChange={setPaginationModel}
+        paginationMode="server"
+        rowCount={rowCount}
         pageSizeOptions={[10, 25, 50]}
         sx={(theme) => ({
           borderRadius: 2,
