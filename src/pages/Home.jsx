@@ -9,7 +9,7 @@ import SchoolIcon from "@mui/icons-material/School";
 import Swal from "sweetalert2";
 
 import { obtenerCampus } from "../api/campusApi";
-import { obtenerSolicitudes, denegarSolicitud, validarBiblioteca } from "../api/solicitudesApi";
+import { obtenerSolicitudes, obtenerSolicitudesExportacion, denegarSolicitud, validarBiblioteca } from "../api/solicitudesApi";
 import { AppContext } from "../context/AppContext";
 import DetalleSolicitudServicioAcademico from "../components/DetalleSolicitudServicioAcademico";
 import TablaSolicitudes from "../components/TablaSolicitudes";
@@ -102,10 +102,17 @@ function Home() {
 
     if (estadoActual === "CampusDeEntrega") {
   const documentos = await obtenerDocumentosCampusDeEntrega(campusSeleccionado);
+  const documentosFiltrados = filtro
+    ? documentos.filter((row) =>
+        Object.values(row).some((value) =>
+          typeof value === "string" && value.toLowerCase().includes(filtro)
+        )
+      )
+    : documentos;
   const inicio = paginationModel.page * paginationModel.pageSize;
   const fin = inicio + paginationModel.pageSize;
-  data = documentos.slice(inicio, fin);
-  total = documentos.length;
+  data = documentosFiltrados.slice(inicio, fin);
+  total = documentosFiltrados.length;
 } else {
   const resultado = await obtenerSolicitudes(campusSeleccionado, estadoActual, paginationModel, filtro);
   data = resultado.data;
@@ -271,6 +278,26 @@ useEffect(() => {
 
   const filasMemo = useMemo(() => solicitudes, [solicitudes]);
 
+  const obtenerFilasExportacion = useCallback(async () => {
+    if (!campusSeleccionado) return [];
+
+    if (estadoActual === "CampusDeEntrega") {
+      const documentos = await obtenerDocumentosCampusDeEntrega(campusSeleccionado);
+      const documentosFiltrados = filtro
+        ? documentos.filter((row) =>
+            Object.values(row).some((value) =>
+              typeof value === "string" && value.toLowerCase().includes(filtro)
+            )
+          )
+        : documentos;
+
+      return mapearSolicitudes(documentosFiltrados);
+    }
+
+    const data = await obtenerSolicitudesExportacion(campusSeleccionado, estadoActual, filtro);
+    return mapearSolicitudes(data);
+  }, [campusSeleccionado, estadoActual, filtro]);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", flex: 1, width: "100%", px: 2, py: 3 }}>
       {/* 🔷 Título */}
@@ -390,6 +417,7 @@ useEffect(() => {
     <Box sx={{ ml: 2, flexShrink: 0 }}>
       <ExportButtons
         rows={filasMemo}
+        onFetchRows={obtenerFilasExportacion}
         fileName={`solicitudes-${estadoActual}`}
         campus={
           listaCampus.find((c) => c.CamCod === campusSeleccionado)?.CamNomEsp ||

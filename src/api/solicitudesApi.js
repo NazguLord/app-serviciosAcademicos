@@ -28,6 +28,24 @@ export const obtenerSolicitudes = async (campus, estado, paginationModel = { pag
   }
 };
 
+export const obtenerSolicitudesExportacion = async (campus, estado, filtro = "") => {
+  try {
+    const response = await axios.get(`${API_BASE}asolicitud_documentos/buscar2.php`, {
+      params: {
+        CamCod: campus,
+        DocEst: estado,
+        filtervalue0: filtro,
+        export: 1,
+      }
+    });
+
+    return Array.isArray(response.data?.data) ? response.data.data : [];
+  } catch (error) {
+    console.error("Error al obtener solicitudes para exportación:", error);
+    return [];
+  }
+};
+
 
 export async function denegarSolicitud(payload) {
   // El endpoint espera form-urlencoded (como en tu captura "Datos de formulario")

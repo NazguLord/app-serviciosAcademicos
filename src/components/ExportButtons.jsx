@@ -1,5 +1,5 @@
 // src/components/ExportButtons.jsx
-import React from "react";
+import React, { useState } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
@@ -9,9 +9,23 @@ import DescriptionIcon from "@mui/icons-material/Description"; // PDF
 import TableViewIcon from "@mui/icons-material/TableView";     // XLSX
 import logo from "../assets/HorizontalFullColor.png"; // Asegúrate de tener el logo
 
-const ExportButtons = ({ rows, fileName = "reporte", campus }) => {
-  const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(rows);
+const ExportButtons = ({ rows, onFetchRows, fileName = "reporte", campus }) => {
+  const [exportando, setExportando] = useState(false);
+
+  const obtenerRowsExportacion = async () => {
+    if (onFetchRows) {
+      const data = await onFetchRows();
+      return Array.isArray(data) ? data : [];
+    }
+
+    return rows;
+  };
+
+  const exportToExcel = async () => {
+    setExportando(true);
+    try {
+    const rowsExport = await obtenerRowsExportacion();
+    const ws = XLSX.utils.json_to_sheet(rowsExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Reporte");
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -19,9 +33,15 @@ const ExportButtons = ({ rows, fileName = "reporte", campus }) => {
       new Blob([wbout], { type: "application/octet-stream" }),
       `${fileName}.xlsx`
     );
+    } finally {
+      setExportando(false);
+    }
   };
 
- const exportToPDF = () => {
+ const exportToPDF = async () => {
+  setExportando(true);
+  try {
+  const rowsExport = await obtenerRowsExportacion();
   const doc = new jsPDF();
 
   // 🔹 Logo sin deformar (solo ancho, altura automática)
@@ -50,7 +70,7 @@ const ExportButtons = ({ rows, fileName = "reporte", campus }) => {
   autoTable(doc, {
     startY: 40, // un poco más abajo para que no choque con el logo
     head: [["Cuenta", "Alumno", "Documento", "Estado"]],
-    body: rows.map((r) => [
+    body: rowsExport.map((r) => [
       r.CueCod || "-",
       r.AluNom || "-",
       r.DocNom || "-",
@@ -80,18 +100,21 @@ const ExportButtons = ({ rows, fileName = "reporte", campus }) => {
 
   // 🔹 Guardar PDF
   doc.save(`${fileName}.pdf`);
+  } finally {
+    setExportando(false);
+  }
 };
 
   return (
     <Stack direction="row" spacing={1}>
       <Tooltip title="Exportar XLSX">
-        <IconButton color="secondary" onClick={exportToExcel}>
+        <IconButton color="secondary" onClick={exportToExcel} disabled={exportando}>
           <TableViewIcon />
         </IconButton>
       </Tooltip>
 
       <Tooltip title="Exportar PDF">
-        <IconButton color="error" onClick={exportToPDF}>
+        <IconButton color="error" onClick={exportToPDF} disabled={exportando}>
           <DescriptionIcon />
         </IconButton>
       </Tooltip>
